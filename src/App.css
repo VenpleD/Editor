@@ -1,38 +1,157 @@
+
+/*公共样式*/
+blockquote,body,button,code,dd,div,dl,dt,fieldset,form,h1,h2,h3,h4,h5,h6,input,legend,li,ol,p,pre,td,textarea,th,ul {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box
+}
+
+:root {
+  /* 定义亮色模式下的 CSS 变量 */
+  --bg-color: white;
+  --text-color: black;
+  --border-color: gray;
+  --title-placeholder-color: #CCCCCC;
+  --title-content-color: #333333;
+  --title-font-size: 24PX;
+  --content-placeholder-color: #CCCCCC;
+  --content-content-color: #333333;
+  --content-font-size: .45333rem;
+  --html-width: min(540PX, 100vw);
+}
+
+.dark-mode {
+  /* 定义暗黑模式下对应的 CSS 变量 */
+  /* --bg-color: black;
+  --text-color: white;
+  --border-color: #444; */
+}
+
+html {
+  overflow: auto;
+  font-size: calc(var(--html-width) / 9);
+  
+}
+
+#root {
+  overflow: auto;  
+}
+
 .App {
-  text-align: center;
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
 }
 
-.App-logo {
-  height: 40vmin;
+.contentPlaceholderClass {
+  font-size: var(--content-font-size);
+  color: var(--content-placeholder-color);
+}
+
+.titlePlaceholderClass {
+  font-size: var(--title-font-size);
+  color: var(--title-placeholder-color);
+}
+
+
+.ProseMirror {
+  border: none!important;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/*下面是content样式*/
+
+/* .contentWrapper .tiptap p.is-content-empty:first-child::before {
+  color: var(--content-placeholder-color);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
   pointer-events: none;
+  font-size: var(--content-font-size);
+} */
+
+.contentWrapper {
+  flex-grow: 1;
+  display: flex;
+  padding-bottom: 16px;
+  padding-left: 16PX;
+  padding-right: 16PX;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.contentWrapper .ProseMirror {
+  flex-grow: 1;
+}
+.contentWrapper .ProseMirror p {
+  font-size: var(--content-font-size);
+}
+.contentWrapper .custom-image-class {
+  width: 100%;
+  height: auto;
+  vertical-align: bottom;
+  background-color: #efefef;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.contentWrapper .imageContainer {
+
+}
+
+.contentWrapper .imageContainerTextarea {
+  width: 100%;
+  border: none;
+  resize: none;
+  margin-top: 8px;
+  color: #999;
+  font-size: .32rem;
+  line-height: .42667rem;
+  text-align:  center;
+}
+
+.contentWrapper .textarea-wrapper {
+  position: relative;
+  width: 100%;
+  padding: 8px;
+}
+
+.contentWrapper .textarea-wrapper textarea {
+  width: 100%;
+  height: 100px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* .titleWrapper .tiptap p.is-content-empty:first-child::before {
+  color: var(--title-placeholder-color);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  font-size: var(--title-font-size);
+} */
+
+/*下面是title样式*/
+
+.titleWithPromptWrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  padding: .32rem 16PX 18PX 16PX;
 }
 
-.App-link {
-  color: #61dafb;
+.titleWithPromptWrapper .promptBox {
+  color: #ff5d5d;
+  font-size: .37333rem;
+  line-height: .42667rem;
+  margin: 4PX 0 0;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.titleWrapper .ProseMirror {
+  font-size: var(--title-font-size);
+
+}
+
+.titleWrapper {
+
 }

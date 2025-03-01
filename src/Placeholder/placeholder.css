@@ -1,0 +1,16 @@
+.__centered .ProseMirror[data-placeholder]::before {
+    position: static;
+}
+
+.ProseMirror[data-placeholder]::before {
+    
+    content: attr(data-placeholder);
+    pointer-events: none;
+
+}
+
+
+
+.contentWrapper .ProseMirror[data-placeholder]::before {
+    position: absolute;
+}
