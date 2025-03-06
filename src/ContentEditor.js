@@ -1,70 +1,97 @@
 import React, { useRef, useEffect } from 'react';
 import { EditorState, Plugin } from 'prosemirror-state';
 import { EditorView } from 'prosemirror-view';
-import { Schema, DOMParser } from 'prosemirror-model';
+import { Schema, DOMParser, ResolvedPos } from 'prosemirror-model';
 import { schema as basicSchema } from "prosemirror-schema-basic"
 import { addListNodes } from 'prosemirror-schema-list';
 import { keymap } from 'prosemirror-keymap';
 import { history } from 'prosemirror-history';
 import { baseKeymap } from 'prosemirror-commands';
-import placeholder from './Placeholder/placeholder';
-import NativeBridge from './NativeBridge';
-import ContentSchema from './ContentSchema';
-import ImagePlugin from './ImagePlugin';
-import { insertImageCommand } from './Commands';
-import { TextareaPlugin } from './TextareaPlugin';
+import placeholder from './Placeholder/placeholder.js';
+import NativeBridge from './NativeBridge.js';
+import ContentSchema from './ContentSchema.js';
+import ImagePlugin from './ImagePlugin.js';
+import { insertImageCommand } from './Commands.js';
+import { TextSelection } from 'prosemirror-state';
+import { PluginKey } from 'prosemirror-state';
+import Utils from './Utils.ts';
 
-// 扩展基本的schema以包含列表相关节点
-// const mySchema = new Schema({
-//   nodes: addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block'),
-//   marks: basicSchema.spec.marks
-// });
-// const mySchema = new Schema({
-//     nodes: {
-//         // 文档顶层节点，必须有
-//         doc: {
-//             // 内容由0个或者多个text节点组成
-//             content: 'text*'
-//         },
-//         // text 节点
-//         text: {}
-//     }
-// })
 const ContentEditor = () => {
   const editorRef = useRef(null);
   const nativeBridge = new NativeBridge();
-
+  // var prosemirrorState = require('prosemirror-state');
+  
+  var backspaceKey = new PluginKey("'backspace'");
   useEffect(() => {
-    // const textContentArray = '初始内容，在这里输入文本'.split(' ');
-    // 使用Fragment来构建段落节点内容
-    // const fragment = basicSchema.nodes.text? basicSchema.nodes.text.createFragment(textContentArray.map(word => basicSchema.nodes.text.createChecked(word))) : Fragment.empty;
-    // 创建初始的编辑器状态
     let myPlugin = new Plugin({
-      canEdit: true,
+      key: backspaceKey,
       props: {
+        handleDOMEvents: {
+          keydown(view, event) {
+            // console.log("A key was pressed!");
+            const { state, dispatch } = view;
+            const { selection } = state;
+    
+            if (event.key === 'Backspace' || event.key === 'Delete') {
+              const { $from, $to, $cursor } = selection;
+              
+              let $cut = Utils.findCutBefore($cursor);
+              let textContent = Utils.getNodeContent(view, $cut);
+              let beforeNode = null;
+              if ($cut.nodeBefore) {
+                beforeNode = $cut.nodeBefore;
+              }
+              if (!textContent.trim() && beforeNode && beforeNode.type.name == "imageContainer") {
+                setTimeout(() => {
+                  let imageContainerNodeObj = Utils.findNodeWith(view, "imageContainer");
+                  let imgCNode = imageContainerNodeObj.node;
+                  let imgCPos = imageContainerNodeObj.pos;                  
+                  if (imgCNode) {
+                    let disp = view.dispatch;
+                    let trans =view.state.tr.deleteRange(imgCPos-imgCNode.content.size + 1, imgCPos + imgCNode.content.size + 1);
+                    let trans2 = trans.scrollIntoView();
+                    disp(trans2);
+                  }
+                }, 0);
+              }
+            }
+    
+            return false;
+          }
+        },
         handleClickOn(view, pos, node, nodePos, event) {
           console.log("clickOn" + node);
           if (node.attrs.cls == "imageContainerTextarea") {
             let textAreaDom = view.domAtPos(pos).node.querySelector('.'+node.attrs.cls);
-            if (textAreaDom) {
-              setTimeout(() => {
+            setTimeout(() => {
+              let parentNode = view.domAtPos(pos).node.parentNode;
+              // let textAreaDom = parentNode.querySelector('.' + node.attrs.cls);
+              if (textAreaDom) {
+                // 使 EditorView 失去焦点
                 view.dom.blur();
                 view.dom.contentEditable = 'false';
-                
-            //     textAreaDom.focus();
-            //     // 确保事件传播被正确处理
-            // event.preventDefault();
-            // event.stopPropagation();
-                // setTimeout(() => {
-                  
-                // }, 0);
-              }, 0);
-              return false;
-              // view.dom.composing = false;
-              // textAreaDom.focus();
-              // textAreaDom.composing = true;
-              // event.stopPropagation();
-            }
+    
+                // 聚焦到 textarea 元素
+                textAreaDom.focus();
+    
+                // 确保事件传播被正确处理
+                // event.preventDefault();
+                // event.stopPropagation();
+    
+                // 绑定 keydown 事件监听器
+                textAreaDom.addEventListener('keydown', function (e) {
+                  console.log('Keydown event on textarea:', e.key);
+                  // 在这里添加更多的事件处理逻辑
+    
+                  // 阻止事件冒泡到父节点
+                  e.stopPropagation();
+                });
+                textAreaDom.addEventListener('blur', function (e) {
+                  console.log('blue event on textarea:', e.key);
+                  view.dom.contentEditable = 'true';
+                });
+              }
+            }, 0);
 
           } else {
 
@@ -76,12 +103,14 @@ const ContentEditor = () => {
         },
         handleKeyDown(view, event) {
           console.log("A key was pressed!");
-          return false;
         },
         editable(state) { 
           console.log("editable"+this.canEdit);
           return this.canEdit;
-        }
+        },
+        atBlockStart() {
+
+        },
         // handleTextInput(view, from, to, text) {
         //   console.log("A key was input!");
         //   if (text === 'a') {
@@ -123,6 +152,9 @@ const ContentEditor = () => {
     const insertLocalImage = (params) => {
       console.log('---' + params + '----');
       insertImageCommand(view, params.imageLocalPath, ContentSchema);
+      // setTimeout(() => {
+      //   view.dispatch(view.state.tr.scrollIntoView())
+      // }, 0);
 
     }
     nativeBridge.register('insertLocalImage', insertLocalImage);
