@@ -11,7 +11,7 @@ import placeholder from './Placeholder/placeholder.js';
 import NativeBridge from './NativeBridge.js';
 import ContentSchema from './ContentSchema.js';
 import ImagePlugin from './ImagePlugin.js';
-import { insertImageCommand } from './Commands.js';
+import { InsertImageCommand } from './Commands.js';
 import { TextSelection } from 'prosemirror-state';
 import { PluginKey } from 'prosemirror-state';
 import Utils from './Utils.ts';
@@ -151,7 +151,7 @@ const ContentEditor = () => {
     });
     const insertLocalImage = (params) => {
       console.log('---' + params + '----');
-      insertImageCommand(view, params.imageLocalPath, ContentSchema);
+      InsertImageCommand(view, params.imageLocalPath, ContentSchema);
       // setTimeout(() => {
       //   view.dispatch(view.state.tr.scrollIntoView())
       // }, 0);

@@ -1,10 +1,9 @@
-// typeChecker.js
-import { useCallback } from 'react';
+import React from 'react';
 
 // 自定义 Hook 用于判断对象类型
 const useTypeChecker = () => {
-    // 使用 useCallback 来缓存 getType 函数，避免每次渲染时都重新创建
-    const getType = useCallback((value: unknown): string => {
+    // 获取对象类型的函数
+    const getType = (value) => {
         if (typeof value === 'undefined') {
             return 'undefined';
         }
@@ -22,19 +21,15 @@ const useTypeChecker = () => {
         }
         // 使用 Object.prototype.toString.call 获取对象的类型字符串，并处理成小写
         return Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
-    }, []);
+    };
 
     // 用于判断值是否为自定义类的实例
-    const isInstanceOfCustomClass = useCallback((value: unknown, customClass: new (...args: any[]) => any): boolean => {
+    const isInstanceOfCustomClass = (value, customClass) => {
         return value instanceof customClass;
-    }, []);
+    };
 
     // 用于判断字符串相关情况
-    const checkString = useCallback((str: unknown): {
-        isString: boolean;
-        isEmpty: boolean;
-        isOnlyWhitespace: boolean;
-    } => {
+    const checkString = (str) => {
         const isString = typeof str === 'string';
         const isEmpty = isString && str.length === 0;
         const isOnlyWhitespace = isString && /^\s*$/.test(str);
@@ -44,10 +39,14 @@ const useTypeChecker = () => {
             isEmpty,
             isOnlyWhitespace
         };
-    }, []);
+    };
 
+    // 新增：判断对象是否为空（null 或 undefined）
+    const isObjectEmpty = (obj) => {
+        return obj === null || typeof obj === 'undefined';
+    };
 
-    return { getType, isInstanceOfCustomClass, checkString };
+    return { getType, isInstanceOfCustomClass, checkString, isObjectEmpty };
 };
 
 export default useTypeChecker;
