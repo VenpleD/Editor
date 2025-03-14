@@ -1,6 +1,7 @@
 import { EditorView } from "prosemirror-view";
 import { Node } from "prosemirror-model";
 import { ResolvedPos } from "prosemirror-model";
+import { EditorState } from "prosemirror-state";
 
 class Utils {
   static findCutBefore(pos: ResolvedPos): ResolvedPos | null {
@@ -14,16 +15,19 @@ class Utils {
     }
     return null;
   }
-  static findNodeWith(view: EditorView, className: String) {
+  static findNodeWith(state: EditorState, className: String) {
     let resultNode: Node | null = null;
-    let resultPos: number = -1;
-    view.state.doc.descendants((node: Node, pos: number) => {
+    let resultPos: ResolvedPos | null = null;
+    let resultPosIndex: number = -1;
+    state.doc.descendants((node: Node, pos: number) => {
+      let tempResolvePos = state.doc.resolve(pos);
       if (node.type.name === className) {
         resultNode = node;
-        resultPos = pos;
+        resultPosIndex = pos;
+        resultPos = tempResolvePos;
       }
     });
-    return { node: resultNode, pos: resultPos };
+    return { node: resultNode, pos: resultPos, posIndex: resultPosIndex };
   }
   static getNodeContent(view: EditorView, pos: ResolvedPos) {
     let content: string | null = null;

@@ -11,13 +11,14 @@ import placeholder from './Placeholder/placeholder.js';
 import NativeBridge from './NativeBridge.js';
 import ContentSchema from './ContentSchema.js';
 import ImagePlugin from './ImagePlugin.js';
-import { InsertImageCommand } from './Commands.js';
+import { InsertImageCommand, FocusLastedNode } from './Commands.ts';
 import { TextSelection } from 'prosemirror-state';
 import { PluginKey } from 'prosemirror-state';
 import Utils from './Utils.ts';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
+  const viewRef = useRef(null)
   const nativeBridge = new NativeBridge();
   // var prosemirrorState = require('prosemirror-state');
   
@@ -48,7 +49,7 @@ const ContentEditor = () => {
                   let imgCPos = imageContainerNodeObj.pos;                  
                   if (imgCNode) {
                     let disp = view.dispatch;
-                    let trans =view.state.tr.deleteRange(imgCPos-imgCNode.content.size + 1, imgCPos + imgCNode.content.size + 1);
+                    let trans =view.state.tr.deleteRange(Math.max(imgCPos-imgCNode.content.size + 1, 0), imgCPos + imgCNode.content.size + 1);
                     let trans2 = trans.scrollIntoView();
                     disp(trans2);
                   }
@@ -60,6 +61,7 @@ const ContentEditor = () => {
           }
         },
         handleClickOn(view, pos, node, nodePos, event) {
+          return true;
           console.log("clickOn" + node);
           if (node.attrs.cls == "imageContainerTextarea") {
             let textAreaDom = view.domAtPos(pos).node.querySelector('.'+node.attrs.cls);
@@ -104,13 +106,6 @@ const ContentEditor = () => {
         handleKeyDown(view, event) {
           console.log("A key was pressed!");
         },
-        editable(state) { 
-          console.log("editable"+this.canEdit);
-          return this.canEdit;
-        },
-        atBlockStart() {
-
-        },
         // handleTextInput(view, from, to, text) {
         //   console.log("A key was input!");
         //   if (text === 'a') {
@@ -149,12 +144,12 @@ const ContentEditor = () => {
         view.updateState(newState);
       }
     });
+    viewRef.current = view;
     const insertLocalImage = (params) => {
-      console.log('---' + params + '----');
       InsertImageCommand(view, params.imageLocalPath, ContentSchema);
-      // setTimeout(() => {
-      //   view.dispatch(view.state.tr.scrollIntoView())
-      // }, 0);
+      setTimeout(() => {
+        FocusLastedNode(view);
+      }, 200);
 
     }
     nativeBridge.register('insertLocalImage', insertLocalImage);

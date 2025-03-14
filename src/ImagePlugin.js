@@ -1,5 +1,4 @@
 import { Plugin } from 'prosemirror-state';
-import { insertImageCommand } from './Commands.js';
 
 const ImagePlugin = new Plugin({
     props: {

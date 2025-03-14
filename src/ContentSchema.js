@@ -9,17 +9,16 @@ const ContentSchema = new Schema({
         imageContainer: {
             content: 'block+',
             group: 'block',
-            draggable: false,
-            parseDOM: [
-                {
-                    tag: 'div',
-                    getAttrs: (dom) => {
-                        console.log('containerParse');
-                        return ({
-                        });
-                    },
-                }
-            ],
+            draggable: false, 
+            parseDOM: [{
+                tag: 'div',
+                getAttrs: (dom) => {
+                    console.log('containerParse');
+                    return ({
+
+                    });
+                },
+            }],
             toDOM: (node) => {
                 const domChildren = [];
                 const childNodes = node.content.content;
@@ -29,23 +28,27 @@ const ContentSchema = new Schema({
                         domChildren.push(childDOM);
                     }
                 }
-                let result = ['div', ...domChildren];
-                return ['div', {class: 'imageContainer', 'contenteditable': 'false', 'draggable': 'false'}, 0];
+                return ['div', { class: 'imageContainer', }, ...domChildren];
             },
         },
         nestedImage: {
+            inline: true,
             attrs: {
-                src: {}
+                src: { validate: "string" },
+                alt: { default: null, validate: "string|null" },
+                title: { default: null, validate: "string|null" },
+                cls: { default: 'custom-image-class' }
             },
-            inline: false,
-            group: 'block',
-            parseDOM: [{
-                tag: 'img',
-                getAttrs: (dom) => ({
-                    src: dom.getAttribute('src')
-                })
-            }],
-            toDOM: (node) => ['img', { src: node.attrs.src, class: 'custom-image-class' }]
+            group: "inline",
+            draggable: true,
+            parseDOM: [{ tag: "img[src]", getAttrs(dom) {
+                        return {
+                            src: dom.getAttribute("src"),
+                            title: dom.getAttribute("title"),
+                            alt: dom.getAttribute("alt")
+                        };
+                    } }],
+            toDOM(node) { let { src, alt, title, cls} = node.attrs; return ["img", { src, alt, title, class: cls }]; }
         },
         nestedParagraph: {
             content: '', // 表示可以包含零个或多个文本节点
@@ -53,7 +56,7 @@ const ContentSchema = new Schema({
             attrs: {
                 placeholder: { default: '' }, // 定义属性，比如设置placeholder（占位符）属性，可根据实际需求添加更多属性，如rows、cols等
                 value: { default: '' }, // 用于存储textarea中的文本值
-                cls: { default: ''}
+                cls: { default: '' },
             },
             draggable: false,
             parseDOM: [
@@ -62,7 +65,7 @@ const ContentSchema = new Schema({
                     getAttrs: (dom) => ({
                         placeholder: dom.getAttribute('placeholder'),
                         value: dom.value, // 获取textarea的value属性值作为节点的对应属性值
-                        cls: dom.cls
+                        cls: dom.cls,
                     })
                 }
             ],
@@ -74,23 +77,6 @@ const ContentSchema = new Schema({
                 }, 0];
             },
         },
-        // image: {
-        //     attrs: {
-        //         src: {}
-        //     },
-        //     inline: false,
-        //     group: 'block',
-        //     draggable: true,
-        //     parseDOM: [
-        //         {
-        //             tag: 'img',
-        //             getAttrs: (dom) => ({
-        //                 src: dom.getAttribute('src')
-        //             })
-        //         }
-        //     ],
-        //     toDOM: (node) => ['img', { src: node.attrs.src, class: 'custom-image-class'}]
-        // }
     }),
     marks: basicSchema.spec.marks
 });
