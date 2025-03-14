@@ -9,7 +9,7 @@ import { history } from 'prosemirror-history';
 import { baseKeymap } from 'prosemirror-commands';
 import placeholder from './Placeholder/placeholder.js';
 import NativeBridge from './NativeBridge.js';
-import ContentSchema from './ContentSchema.js';
+import ContentSchema from './ContentSchema.ts';
 import ImagePlugin from './ImagePlugin.js';
 import { InsertImageCommand, FocusLastedNode } from './Commands.ts';
 import { TextSelection } from 'prosemirror-state';

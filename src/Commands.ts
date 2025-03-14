@@ -20,7 +20,7 @@ export const FocusLastedNode = (view: EditorView) => {
       resultPosIndex = pos;
       resultPos = tempResolvePos;
     });
-    let lastSel = tr1.selection.constructor.create(tr1.doc, resultPosIndex + 1)
+    let lastSel = TextSelection.create(tr1.doc, resultPosIndex + 1, resultPosIndex + 1);
     dispatch1(tr1.setSelection(lastSel).scrollIntoView());
     // let nextParagraphPosIndex = imageContainerNodeObj.posIndex + imageContainerNodeObj.node.nodeSize + 1;
     // let nextParagraphPos = state1.doc.resolve(nextParagraphPosIndex);
@@ -37,12 +37,12 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
     const { getType, isInstanceOfCustomClass, checkString, isObjectEmpty } = useTypeChecker();
     const { state, dispatch } = view;
     const { tr, selection} = state;
-    const { $cursor, $from, $to } = selection;
+    const { $anchor, $from, $to } = selection;
     // let cutObj = Utils.findCutBefore(selection.$cursor);
-    let currentNode = $cursor.node($cursor.depth).content.firstChild;
+    let currentNode = $anchor.node($anchor.depth).content.firstChild;
     let currentNodeEmpty = true;
     if (!isObjectEmpty(currentNode)) {
-        let currentNodeContent = currentNode.content.text;
+        let currentNodeContent = currentNode?.text;
         if (!checkString(currentNodeContent).isEmpty) {
             currentNodeEmpty = false
         }
@@ -61,6 +61,7 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
     let textClsName = 'imageContainerTextarea';
     const nestedParagraphNode = currentSchema.nodes.nestedParagraph.create({
         placeholder: '请输入内容',
+        value: '哈哈',
         cls: textClsName,
     });
     const fragment = Fragment.fromArray([imageNode, nestedParagraphNode]);

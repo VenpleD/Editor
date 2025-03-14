@@ -1,7 +1,6 @@
-import { Schema, Fragment } from 'prosemirror-model';
+import { Schema, Fragment, Node, NodeType, NodeSpec, DOMOutputSpec } from 'prosemirror-model';
 import { schema as basicSchema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
-
 import { NodeView } from 'prosemirror-view';
 
 const ContentSchema = new Schema({
@@ -9,7 +8,7 @@ const ContentSchema = new Schema({
         imageContainer: {
             content: 'block+',
             group: 'block',
-            draggable: false, 
+            draggable: false,
             parseDOM: [{
                 tag: 'div',
                 getAttrs: (dom) => {
@@ -20,14 +19,15 @@ const ContentSchema = new Schema({
                 },
             }],
             toDOM: (node) => {
-                const domChildren = [];
-                const childNodes = node.content.content;
-                for (const childNode of childNodes) {
-                    const childDOM = childNode.type.spec.toDOM(childNode);
-                    if (childDOM) {
-                        domChildren.push(childDOM);
+                let domChildren: DOMOutputSpec[] = [];
+                node.content.forEach((childNode: Node) => {
+                    if (childNode.type.spec.toDOM) {
+                        let childDOM = childNode.type.spec.toDOM(childNode);
+                        if (childDOM) {
+                            domChildren.push(childDOM);
+                        }
                     }
-                }
+                });
                 return ['div', { class: 'imageContainer', }, ...domChildren];
             },
         },
@@ -41,14 +41,16 @@ const ContentSchema = new Schema({
             },
             group: "inline",
             draggable: true,
-            parseDOM: [{ tag: "img[src]", getAttrs(dom) {
-                        return {
-                            src: dom.getAttribute("src"),
-                            title: dom.getAttribute("title"),
-                            alt: dom.getAttribute("alt")
-                        };
-                    } }],
-            toDOM(node) { let { src, alt, title, cls} = node.attrs; return ["img", { src, alt, title, class: cls }]; }
+            parseDOM: [{
+                tag: "img[src]", getAttrs(dom) {
+                    return {
+                        src: dom.getAttribute("src"),
+                        title: dom.getAttribute("title"),
+                        alt: dom.getAttribute("alt")
+                    };
+                }
+            }],
+            toDOM(node) { let { src, alt, title, cls } = node.attrs; return ["img", { src, alt, title, class: cls }]; }
         },
         nestedParagraph: {
             content: '', // 表示可以包含零个或多个文本节点
@@ -64,8 +66,8 @@ const ContentSchema = new Schema({
                     tag: 'textarea',
                     getAttrs: (dom) => ({
                         placeholder: dom.getAttribute('placeholder'),
-                        value: dom.value, // 获取textarea的value属性值作为节点的对应属性值
-                        cls: dom.cls,
+                        value: dom.getAttribute('value'), // 获取textarea的value属性值作为节点的对应属性值
+                        cls: dom.getAttribute('cls'),
                     })
                 }
             ],
@@ -74,7 +76,7 @@ const ContentSchema = new Schema({
                     placeholder: node.attrs.placeholder,
                     value: node.attrs.value,
                     class: node.attrs.cls
-                }, 0];
+                }, node.attrs.value];
             },
         },
     }),
