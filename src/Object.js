@@ -1,7 +1,7 @@
 import React from 'react';
 
 // 自定义 Hook 用于判断对象类型
-const useTypeChecker = () => {
+const UseTypeChecker = () => {
     // 获取对象类型的函数
     const getType = (value) => {
         if (typeof value === 'undefined') {
@@ -49,4 +49,4 @@ const useTypeChecker = () => {
     return { getType, isInstanceOfCustomClass, checkString, isObjectEmpty };
 };
 
-export default useTypeChecker;
+export default UseTypeChecker;

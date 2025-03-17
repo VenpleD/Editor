@@ -3,6 +3,12 @@ import { Node } from "prosemirror-model";
 import { ResolvedPos } from "prosemirror-model";
 import { EditorState } from "prosemirror-state";
 
+interface FindNodeResult {
+  node: Node | null;
+  pos: ResolvedPos | null;
+  posIndex: number;
+}
+
 class Utils {
   static findCutBefore(pos: ResolvedPos): ResolvedPos | null {
     if (!pos.parent.type.spec.isolating) {
@@ -15,7 +21,7 @@ class Utils {
     }
     return null;
   }
-  static findNodeWith(state: EditorState, className: String) {
+  static findNodeWith(state: EditorState, className: String): FindNodeResult {
     let resultNode: Node | null = null;
     let resultPos: ResolvedPos | null = null;
     let resultPosIndex: number = -1;
@@ -26,6 +32,18 @@ class Utils {
         resultPosIndex = pos;
         resultPos = tempResolvePos;
       }
+    });
+    return { node: resultNode, pos: resultPos, posIndex: resultPosIndex };
+  }
+  static lastNodeWith(state: EditorState): FindNodeResult {
+    let resultNode: Node | null = null;
+    let resultPos: ResolvedPos | null = null;
+    let resultPosIndex: number = -1;
+    state.doc.descendants((node: Node, pos: number) => {
+      let tempResolvePos = state.doc.resolve(pos);
+      resultNode = node;
+      resultPosIndex = pos;
+      resultPos = tempResolvePos;
     });
     return { node: resultNode, pos: resultPos, posIndex: resultPosIndex };
   }

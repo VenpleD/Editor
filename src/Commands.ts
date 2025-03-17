@@ -1,6 +1,6 @@
 import { Fragment, Node, Schema } from "prosemirror-model";
 import Utils from "./Utils.ts";
-import useTypeChecker from "./Object.js";
+import UseTypeChecker from "./Object.js";
 import { Selection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 
@@ -8,33 +8,15 @@ export const FocusLastedNode = (view: EditorView) => {
     let state1 = view.state;
     let dispatch1 = view.dispatch;
     let tr1  = state1.tr;
-    let selection1 = state1.selection;
-    let imageContainerNodeObj = Utils.findNodeWith(state1, "imageContainer");
-    let lastPos = state1.doc.resolve(2);
-    let resultNode;
-    let resultPos;
-    let resultPosIndex;
-    state1.doc.descendants((node, pos) => {
-      let tempResolvePos = state1.doc.resolve(pos);
-      resultNode = node;
-      resultPosIndex = pos;
-      resultPos = tempResolvePos;
-    });
-    let lastSel = TextSelection.create(tr1.doc, resultPosIndex + 1, resultPosIndex + 1);
+    let lastNodeObj = Utils.lastNodeWith(state1);
+    if (!lastNodeObj.node) { return; }
+    let resultPosIndex = lastNodeObj.posIndex + lastNodeObj.node.nodeSize;
+    let lastSel = TextSelection.create(tr1.doc, resultPosIndex, resultPosIndex);
     dispatch1(tr1.setSelection(lastSel).scrollIntoView());
-    // let nextParagraphPosIndex = imageContainerNodeObj.posIndex + imageContainerNodeObj.node.nodeSize + 1;
-    // let nextParagraphPos = state1.doc.resolve(nextParagraphPosIndex);
-    // // const { tr1, selection1} = state1;
-    // let nextSel = TextSelection.create(tr1.doc, nextParagraphPosIndex, nextParagraphPosIndex);
-    // let nextSel2 = tr1.selection.constructor.create(tr1.doc, nextParagraphPosIndex)
-    // let nextSel4 = tr1.selection.constructor.create(tr1.doc, imageContainerNodeObj.posIndex + 1)
-    // let nextSel3 = tr1.selection.constructor.create(tr1.doc, nextParagraphPosIndex + 1)
-    // let newSelection = tr1.selection.constructor.create(tr1.doc, selection1.to);
-    // dispatch1(tr1.setSelection(nextSel2));
 }
 
 export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSchema: Schema) => {
-    const { getType, isInstanceOfCustomClass, checkString, isObjectEmpty } = useTypeChecker();
+    const { getType, isInstanceOfCustomClass, checkString, isObjectEmpty } = UseTypeChecker();
     const { state, dispatch } = view;
     const { tr, selection} = state;
     const { $anchor, $from, $to } = selection;
@@ -82,6 +64,7 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
         let selFrom = selection.from - (currentNodeEmpty ? 1 : 0);
         dispatch(tr.replaceWith(selFrom, selTo, resultFragment).scrollIntoView());
         setTimeout(() => {
+            // state要重新获取，因为view刷新过之后，state也会重新创建，并不会修改原有state，而是重新创建
             let state1 = view.state;
             let imageContainerNodeObj = Utils.findNodeWith(state1, 'nestedParagraph');
             if (imageContainerNodeObj.posIndex == -1) {
