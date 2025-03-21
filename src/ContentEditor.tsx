@@ -6,17 +6,17 @@ import { keymap } from 'prosemirror-keymap';
 import { history, undo, redo } from 'prosemirror-history';
 import { baseKeymap } from 'prosemirror-commands';
 import placeholder from './Placeholder/placeholder.js';
-import NativeBridge from './NativeBridge.js';
 import ContentSchema from './ContentSchema.ts';
-import { InsertImageCommand, FocusLastedNode } from './Commands.ts';
 import { PluginKey } from 'prosemirror-state';
 import Utils from './Utils.ts';
 import UseTypeChecker from './Object.js';
+import NativeBridge from './NativeBridge.ts';
+import { FocusLastedNode } from './Commands.ts';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
   const viewRef = useRef<EditorView | null>(null)
-  const nativeBridge = new NativeBridge();
+  const nativeBridge = new NativeBridge(viewRef);
   // var prosemirrorState = require('prosemirror-state');
 
   var backspaceKey = new PluginKey("'backspace'");
@@ -146,17 +146,20 @@ const ContentEditor = () => {
           "to", transaction.doc.content.size)
         const newState = view.state.apply(transaction);
         view.updateState(newState);
+      },
+      attributes: {
+        id: 'editor-view-id' // 设置 EditorView 的 id
       }
     });
     viewRef.current = view;
-    const insertLocalImage = (params) => {
-      InsertImageCommand(view, params.imageLocalPath, ContentSchema);
-      setTimeout(() => {
-        FocusLastedNode(view);
-      }, 200);
+    // const insertLocalImage = (params) => {
+    //   InsertImageCommand(view, params.imageLocalPath, ContentSchema);
+    //   setTimeout(() => {
+    //     FocusLastedNode(view);
+    //   }, 200);
 
-    }
-    nativeBridge.register('insertLocalImage', insertLocalImage);
+    // }
+    // nativeBridge.register('insertLocalImage', insertLocalImage);
 
     const handlePageClick = (event) => {
       const target = event.target;
@@ -213,9 +216,28 @@ const ContentEditor = () => {
       view.destroy();
     };
   }, []);
+  function hideKeyboard() {
+    let tempView = viewRef.current;
+    if (tempView) {
+      tempView.focus();
+      // tempView.dom.blur();
+      setTimeout(() => {
+        let temp1View = viewRef.current;
+        if (temp1View) {
+          temp1View.focus();
+        } 
+        
+        // FocusLastedNode(tempView)
+      }, 0);
+    }
 
+  }
   return (
+    <div>
     <div className='contentWrapper' ref={editorRef}></div>
+    <button onClick={hideKeyboard}>点击点击点击点击</button>
+    </div>
+
   );
 };
 

@@ -8,7 +8,6 @@ import { keymap } from 'prosemirror-keymap';
 import { history, undo, redo } from 'prosemirror-history';
 import { baseKeymap } from 'prosemirror-commands';
 import placeholder from './Placeholder/placeholder.js';
-import NativeBridge from './NativeBridge.js';
 
 // 扩展基本的schema以包含列表相关节点
 // const mySchema = new Schema({
