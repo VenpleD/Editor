@@ -1,8 +1,23 @@
-import { Fragment, Node, Schema } from "prosemirror-model";
+import { Fragment, MarkType, Schema } from "prosemirror-model";
 import Utils from "./Utils.ts";
 import UseTypeChecker from "./Object.js";
 import { Selection, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import ContentSchema from "./ContentSchema.ts";
+import { toggleMark } from "prosemirror-commands";
+import { undo } from "prosemirror-history";
+
+export const SettingBlod = (view: EditorView) => {
+    const { state, dispatch } = view;
+    const { tr, selection} = state;
+    const { from, to, $anchor } = selection;
+    let index = $anchor.index($anchor.depth - 1)
+    let maskArray = state.storedMarks
+    const markType: MarkType = ContentSchema.marks.strong;
+    let aa = Utils.findCurrentNode(selection.$anchor)
+    // dispatch(tr.addNodeMark(from, markType.create()))
+    console.log("blod");
+}
 
 export const FocusLastedNode = (view: EditorView) => {
     let state1 = view.state;

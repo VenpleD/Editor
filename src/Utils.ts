@@ -13,8 +13,21 @@ class Utils {
   static findCutBefore(pos: ResolvedPos): ResolvedPos | null {
     if (!pos.parent.type.spec.isolating) {
       for (var i = pos.depth - 1; i >= 0; i--) {
-        if (pos.index(i) > 0) {
+        let indexObj = pos.index(i)
+        if (indexObj > 0) {
           return pos.doc.resolve(pos.before(i + 1))
+        };
+        if (pos.node(i).type.spec.isolating) break;
+      }
+    }
+    return null;
+  }
+  static findCurrentNode(pos: ResolvedPos): ResolvedPos | null {
+    if (!pos.parent.type.spec.isolating) {
+      for (var i = pos.depth - 1; i >= 0; i--) {
+        let indexObj = pos.index(i)
+        if (indexObj > 0) {
+          return pos.doc.resolve(pos.start(i))
         };
         if (pos.node(i).type.spec.isolating) break;
       }
