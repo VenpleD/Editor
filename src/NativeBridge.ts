@@ -1,11 +1,11 @@
 import { EditorView } from "prosemirror-view";
 import { useRef } from "react";
-import { InsertImageCommand, FocusLastedNode, SettingBlod } from "./Commands.ts";
+import { InsertImageCommand, FocusLastedNode, FontCommand } from "./Commands.ts";
 import ContentSchema from "./ContentSchema.ts";
 import UseTypeChecker from "./Object.js";
 
 export interface DDBridge {
-    call(funcName: string, params: JSON, callback: Function): any;
+    call(funcName: string, params: JSON, callback: Function | null): any;
     registerSync(funcName: string, funcObj: Function): void;
     registerAsync(funcName: string, funcObj: Function): void;
 }
@@ -28,6 +28,11 @@ class NativeBridge {
         if (this.nativeBridge) {
             this.commonFunc();
         }
+    }
+
+    public asyncFontInfo (params: JSON) {
+        if (!this.nativeBridge) { return;}
+        this.nativeBridge.call('asyncFontInfo', params, null);
     }
 
     private insertImage = (params: InsertImageParams) => {
@@ -82,10 +87,13 @@ class NativeBridge {
         }
     }
 
-    private blod = (params: any) => {
-        if (this.viewRef.current) {
-            SettingBlod(this.viewRef.current)
-        }
+    private settingFont =  (params: any) => {
+        const { getType } = UseTypeChecker()
+        let view = this.viewRef.current
+        if (!view) {return}
+        let funcName = params.funcName;
+        let paramString = params.paramString;
+        FontCommand[funcName](view, paramString);
     }
 
     private commonFunc() {
@@ -93,7 +101,7 @@ class NativeBridge {
         this.nativeBridge.registerAsync('becomeFirstResponse', this.becomeFirstResponse);
         this.nativeBridge.registerAsync('resignFirstResponse', this.resignFirstResponse);
         this.nativeBridge.registerAsync('hasFocused', this.hasFocused);
-        this.nativeBridge.registerAsync('blod', this.blod);
+        this.nativeBridge.registerAsync('settingFont', this.settingFont);
     }
 
 }
