@@ -52,7 +52,7 @@ class Utils {
     let resultNode: Node | null = null;
     let resultPos: ResolvedPos | null = null;
     let resultPosIndex: number = -1;
-    state.doc.descendants((node: Node, pos: number) => {
+    state.doc.descendants((node: Node, pos: number, parent: Node | null, index: number) => {
       let tempResolvePos = state.doc.resolve(pos);
       resultNode = node;
       resultPosIndex = pos;

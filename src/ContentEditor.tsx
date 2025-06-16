@@ -39,25 +39,43 @@ const ContentEditor = () => {
             let $cut = Utils.findCutBefore($anchor);
             if (!$cut) {
               /// 如果没有前置节点，直接返回false，走框架自身删除逻辑
+              console.log("没有前置节点，走框架自身删除逻辑");
               return false;
             }
+            let rangeMax = Math.max($from.pos, $to.pos);
+            let rangeMin = Math.min($from.pos, $to.pos);
+            if (rangeMax != rangeMin && ($cut.pos < rangeMin || $cut.pos > rangeMax)) {
+              // 如果$cut位置不在当前选区范围内，直接返回false，走框架自身删除逻辑
+              console.log("没有前置节点，走框架自身删除逻辑");
+              return false;
+
+            }
+            /// 是否光标再当前节点的开始出
+            let anchorAtHead = $anchor.pos == ($cut.pos + 1);
+
             let textContent = Utils.getNodeContent(view, $anchor);
             let beforeNode: Node | null = null;
             if ($cut.nodeBefore) {
               beforeNode = $cut.nodeBefore;
             }
-            if (checkString(textContent).isEmpty && beforeNode && beforeNode.type.name == "imageContainer") {
-              setTimeout(() => {
-                let imageContainerNodeObj = Utils.findNodeWith(view.state, "imageContainer");
-                let imgContainerNode = imageContainerNodeObj.node;
-                let imgContainerPosIndex = imageContainerNodeObj.posIndex;
-                if (imgContainerNode) {
-                  let disp = view.dispatch;
-                  let trans = view.state.tr.deleteRange(Math.max(imgContainerPosIndex - imgContainerNode.content.size + 1, 0), imgContainerPosIndex + imgContainerNode.content.size + 1);
-                  let trans2 = trans.scrollIntoView();
-                  disp(trans2);
-                }
-              }, 0);
+            let needHandleImage = false;
+            if (checkString(textContent).isEmpty) {
+              needHandleImage = true;
+            } else {
+              /// 有内容，并且光标在开始位置也需要处理
+              needHandleImage = anchorAtHead;
+            }
+            if (needHandleImage && beforeNode && beforeNode.type.name == "imageContainer") {
+              console.log("删除图片容器");
+              let imageContainerNodeObj = Utils.findNodeWith(view.state, "imageContainer");
+              let imgContainerNode = imageContainerNodeObj.node;
+              let imgContainerPosIndex = imageContainerNodeObj.posIndex;
+              if (imgContainerNode) {
+                let disp = view.dispatch;
+                let trans = view.state.tr.deleteRange(Math.max(imgContainerPosIndex - imgContainerNode.content.size + 1, 0), imgContainerPosIndex + imgContainerNode.content.size + 1);
+                let trans2 = trans.scrollIntoView();
+                disp(trans2);
+              }
               return true;
             }
 
@@ -132,7 +150,7 @@ const ContentEditor = () => {
         keymap(baseKeymap),  // 添加基础的键盘快捷键，如回车键换行等默认操作
         myPlugin,
         placeholder('请输入正文', 'contentPlaceholderClass'),
-        CursorInfoPlugin(nativeBridge)
+        // CursorInfoPlugin(nativeBridge)
         // ImagePlugin,
         // TextareaPlugin,
       ]
@@ -227,8 +245,8 @@ const ContentEditor = () => {
         let temp1View = viewRef.current;
         if (temp1View) {
           temp1View.focus();
-        } 
-        
+        }
+
         // FocusLastedNode(tempView)
       }, 0);
     }
@@ -236,7 +254,7 @@ const ContentEditor = () => {
   }
   return (
     <div>
-    <div className='contentWrapper' ref={editorRef}></div>
+      <div className='contentWrapper' ref={editorRef}></div>
     </div>
 
   );

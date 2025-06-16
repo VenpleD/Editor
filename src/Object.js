@@ -30,6 +30,13 @@ const UseTypeChecker = () => {
 
     // 用于判断字符串相关情况
     const checkString = (str) => {
+        if (isObjectEmpty(str)) {
+            return {
+                isString: false,
+                isEmpty: true,
+                isOnlyWhitespace: false
+            };
+        }
         const isString = typeof str === 'string';
         const isEmpty = isString && str.length === 0;
         const isOnlyWhitespace = isString && /^\s*$/.test(str);

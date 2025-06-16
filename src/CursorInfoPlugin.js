@@ -33,8 +33,8 @@ function createCursorInfoPlugin(bridge) {
                         // 文字颜色和背景色
                         let colorMark = marks.find(mark => mark.type.name === 'textColor');
                         let bgColorMark = marks.find(mark => mark.type.name === 'bgColor' || mark.type.name === 'backgroundColor');
-                        let textColor = colorMark ? colorMark.attrs.color : "";
-                        let bgColor = bgColorMark ? (bgColorMark.attrs.bgColor || bgColorMark.attrs.backgroundColor) : "";
+                        let textColor = colorMark ? colorMark.attrs.color : "textClearColor";
+                        let bgColor = bgColorMark ? (bgColorMark.attrs.bgColor || bgColorMark.attrs.backgroundColor) : "bgClearColor";
 
                         // 对齐方式（通常是段落节点的 attrs）
                         let align = $from.parent.attrs.align || $from.parent.attrs.textAlign || 'left';
