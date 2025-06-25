@@ -51,7 +51,6 @@ class NativeBridge {
         let view = this.viewRef.current
         if (view) {
             view.focus();
-            console.log("========--");
             setTimeout(() => {
                 if (getType(params) == 'function') {
                     params(true)
@@ -87,13 +86,17 @@ class NativeBridge {
         }
     }
 
-    private settingFont =  (params: any) => {
+    private settingFont =  (params: any, callback: Function) => {
         const { getType } = UseTypeChecker()
         let view = this.viewRef.current
         if (!view) {return}
         let funcName = params.funcName;
         let paramString = params.paramString;
-        FontCommand[funcName](view, paramString);
+        console.log('settingFont', funcName, paramString);
+        let result = FontCommand[funcName](view, paramString);
+        if (callback && getType(callback) == 'function') {
+            callback(result);
+        }
     }
 
     private commonFunc() {

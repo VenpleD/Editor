@@ -16,8 +16,9 @@ blockquote,body,button,code,dd,div,dl,dt,fieldset,form,h1,h2,h3,h4,h5,h6,input,l
   --title-font-size: 24PX;
   --content-placeholder-color: #CCCCCC;
   --content-content-color: #333333;
-  --content-font-size: .45333rem;
+  --content-font-size: 0.45rem;
   --html-width: min(540PX, 100vw);
+  --html-font-size: 45px;
 }
 
 .dark-mode {
@@ -29,7 +30,7 @@ blockquote,body,button,code,dd,div,dl,dt,fieldset,form,h1,h2,h3,h4,h5,h6,input,l
 
 html {
   overflow: auto;
-  font-size: calc(var(--html-width) / 9);
+  font-size: var(--html-font-size);
   -webkit-overflow-scrolling: touch;
   
 }

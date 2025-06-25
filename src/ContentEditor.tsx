@@ -12,7 +12,7 @@ import Utils from './Utils.ts';
 import UseTypeChecker from './Object.js';
 import NativeBridge from './NativeBridge.ts';
 import { FocusLastedNode } from './Commands.ts';
-import CursorInfoPlugin from './CursorInfoPlugin.js';
+import CreateCursorInfoPlugin from './CursorInfoPlugin.js';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
@@ -150,7 +150,7 @@ const ContentEditor = () => {
         keymap(baseKeymap),  // 添加基础的键盘快捷键，如回车键换行等默认操作
         myPlugin,
         placeholder('请输入正文', 'contentPlaceholderClass'),
-        // CursorInfoPlugin(nativeBridge)
+        CreateCursorInfoPlugin(nativeBridge)
         // ImagePlugin,
         // TextareaPlugin,
       ]

@@ -1,7 +1,71 @@
 import { Schema, Fragment, Node, NodeType, NodeSpec, DOMOutputSpec } from 'prosemirror-model';
 import { schema as basicSchema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
-import { NodeView } from 'prosemirror-view';
+import { MarkSpec } from 'prosemirror-model';
+// 1. 定义下划线、删除线、字体颜色、背景色、字号等 mark
+const underlineMark = {
+  parseDOM: [
+    { tag: "u" },
+    { style: "text-decoration=underline" }
+  ],
+  toDOM() { return ["u", 0] as const; }
+};
+
+const strikeMark = {
+  parseDOM: [
+    { tag: "s" },
+    { tag: "del" },
+    { style: "text-decoration=line-through" }
+  ],
+  toDOM() { return ["s", 0] as const; }
+};
+
+const textColorMark = {
+  attrs: { color: {} },
+  parseDOM: [
+    {
+      style: "color",
+      getAttrs: value => ({ color: value })
+    }
+  ],
+  toDOM(mark) {
+    return ["span", { style: `color: ${mark.attrs.color}` }, 0] as const;
+  }
+};
+
+const bgColorMark = {
+  attrs: { bgColor: {} },
+  parseDOM: [
+    {
+      style: "background-color",
+      getAttrs: value => ({ bgColor: value })
+    }
+  ],
+  toDOM(mark) {
+    return ["span", { style: `background-color: ${mark.attrs.bgColor}` }, 0] as const;
+  }
+};
+
+const fontSizeMark = {
+  attrs: { fontSize: {} },
+  parseDOM: [
+    {
+      style: "font-size",
+      getAttrs: value => ({ fontSize: value })
+    }
+  ],
+  toDOM(mark) {
+    return ["span", { style: `font-size: ${mark.attrs.fontSize}` }, 0] as const;
+  }
+};
+
+// 2. 合并 marks
+const allMarks = basicSchema.spec.marks
+  .update("underline", underlineMark)
+  .update("strike", strikeMark)
+  .update("textColor", textColorMark)
+  .update("bgColor", bgColorMark)
+  .update("fontSize", fontSizeMark);
 
 const ContentSchema = new Schema({
     nodes: addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block').append({
@@ -80,7 +144,7 @@ const ContentSchema = new Schema({
             },
         },
     }),
-    marks: basicSchema.spec.marks
+    marks: allMarks
 });
 
 export default ContentSchema;

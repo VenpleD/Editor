@@ -1,121 +1,88 @@
 import { Fragment, MarkType, Schema } from "prosemirror-model";
 import Utils from "./Utils.ts";
 import UseTypeChecker from "./Object.js";
-import { NodeSelection, Selection, TextSelection } from "prosemirror-state";
+import { EditorState, NodeSelection, Selection, TextSelection, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import ContentSchema from "./ContentSchema.ts";
 import { toggleMark, setBlockType } from "prosemirror-commands";
-import { undo } from "prosemirror-history";
+import GlobalStyle from "./Global.ts";
 
 type FontFunction = {
-    bold: (view: EditorView) => (void);
-    underline: (view: EditorView) => (void);
-    italic: (view: EditorView) => (void);
-    strike: (view: EditorView) => (void);
-    textColor: (view: EditorView, color: string) => (void);
-    bgColor: (view: EditorView, bgColor: string) => (void);
-    fontSize: (view: EditorView, fontSize: string) => (void);
-    align: (view: EditorView, align: string) => (void);
+    bold: (view: EditorView) => (Boolean);
+    underline: (view: EditorView) => (Boolean);
+    italic: (view: EditorView) => (Boolean);
+    strike: (view: EditorView) => (Boolean);
+    textColor: (view: EditorView, color: string) => (Boolean);
+    bgColor: (view: EditorView, bgColor: string) => (Boolean);
+    fontSize: (view: EditorView, fontSize: string) => (Boolean);
+    align: (view: EditorView, align: string) => (Boolean);
 }
 
 export const FontCommand: FontFunction = {
     bold: (view: EditorView) => {
         const markType = ContentSchema.marks.strong;
-        if (markType) toggleMark(markType)(view.state, view.dispatch, view);
+        if (markType) {
+            toggleMark(markType)(view.state, view.dispatch, view);
+            return true;
+        }
+        return false;
     },
     underline: (view: EditorView) => {
         const markType = ContentSchema.marks.underline;
-        if (markType) toggleMark(markType)(view.state, view.dispatch, view);
+        if (markType) {
+            toggleMark(markType)(view.state, view.dispatch, view);
+            return true;
+        }
+        return false;
     },
     italic: (view: EditorView) => {
         const markType = ContentSchema.marks.em;
-        if (markType) toggleMark(markType)(view.state, view.dispatch, view);
+        if (markType) {
+            toggleMark(markType)(view.state, view.dispatch, view);
+            return true;
+        }
+        return false;
     },
     strike: (view: EditorView) => {
         const markType = ContentSchema.marks.strike || ContentSchema.marks.strikethrough;
-        if (markType) toggleMark(markType)(view.state, view.dispatch, view);
+        if (markType) {
+            toggleMark(markType)(view.state, view.dispatch, view);
+            return true;
+        }
+        return false;
     },
     textColor: (view: EditorView, color: string) => {
         const markType = ContentSchema.marks.textColor;
-        if (markType) toggleMark(markType, { color })(view.state, view.dispatch, view);
+        if (markType) {
+            toggleMark(markType, { color })(view.state, view.dispatch, view);
+            return true;
+        }
+        return false;
     },
     bgColor: (view: EditorView, bgColor: string) => {
         const markType = ContentSchema.marks.bgColor || ContentSchema.marks.backgroundColor;
-        if (markType) toggleMark(markType, { bgColor })(view.state, view.dispatch, view);
+        if (markType) {
+            toggleMark(markType, { bgColor })(view.state, view.dispatch, view);
+            return true;
+        }
+        return false;
     },
     fontSize: (view: EditorView, fontSize: string) => {
         const markType = ContentSchema.marks.fontSize;
-        if (markType) toggleMark(markType, { fontSize })(view.state, view.dispatch, view);
+        if (!markType) return false;
+        setMark(markType, { fontSize: GlobalStyle.convertToRem(Number(fontSize)) + 'rem' })(view.state, view.dispatch);
+        return true;
     },
     align: (view: EditorView, align: string) => {
         const { state, dispatch } = view;
         const { schema } = state;
         const paragraph = schema.nodes.paragraph;
-        if (!paragraph) return;
+        if (!paragraph) return false;
         setBlockType(paragraph, { align })(state, dispatch);
+        return true;
     }
 };
 
-// export const SettingBold = (view: EditorView) => {
-//     const markType = ContentSchema.marks.strong;
-//     toggleMark(markType)(view.state, view.dispatch, view);
-//     // const { state, dispatch } = view;
-//     // const { tr, selection} = state;
-//     // const { from, to, $anchor } = selection;
-//     // let index = $anchor.index($anchor.depth - 1)
-//     // let maskArray = state.storedMarks
-//     // const markType: MarkType = ContentSchema.marks.strong;
-//     // let aa = Utils.findCurrentNode(selection.$anchor)
-//     // dispatch(tr.addNodeMark(from, markType.create()))
-//     console.log("blod");
-// }
-// // 下划线
-// export const toggleUnderline = (view: EditorView) => {
-//   const markType = ContentSchema.marks.underline;
-//   if (markType) toggleMark(markType)(view.state, view.dispatch, view);
-// };
-
-// // 斜体
-// export const toggleItalic = (view: EditorView) => {
-//   const markType = ContentSchema.marks.em;
-//   if (markType) toggleMark(markType)(view.state, view.dispatch, view);
-// };
-
-// // 删除线
-// export const toggleStrike = (view: EditorView) => {
-//   const markType = ContentSchema.marks.strike || ContentSchema.marks.strikethrough;
-//   if (markType) toggleMark(markType)(view.state, view.dispatch, view);
-// };
-// // 字体颜色
-// export const setTextColor = (view: EditorView, color: string) => {
-//   const markType: MarkType = ContentSchema.marks.textColor;
-//   if (!markType) return;
-//   toggleMark(markType, { color })(view.state, view.dispatch, view);
-// };
-
-// // 背景色
-// export const setBgColor = (view: EditorView, bgColor: string) => {
-//   const markType: MarkType = ContentSchema.marks.bgColor || ContentSchema.marks.backgroundColor;
-//   if (!markType) return;
-//   toggleMark(markType, { bgColor })(view.state, view.dispatch, view);
-// };
-
-// // 字号
-// export const setFontSize = (view: EditorView, fontSize: string) => {
-//   const markType: MarkType = ContentSchema.marks.fontSize;
-//   if (!markType) return;
-//   toggleMark(markType, { fontSize })(view.state, view.dispatch, view);
-// };
-
-
-// // 假设段落节点支持 align 属性
-// export const setAlign = (view: EditorView, align: string) => {
-//   const { state, dispatch } = view;
-//   const { schema } = state;
-//   const paragraph = schema.nodes.paragraph;
-//   if (!paragraph) return;
-//   setBlockType(paragraph, { align })(state, dispatch);
-// };
 export const FocusLastedNode = (view: EditorView) => {
     let state1 = view.state;
     let dispatch1 = view.dispatch;
@@ -223,4 +190,25 @@ function settingTextareaDom(view: EditorView) {
         console.log('blue event on textarea:');
         // view.dom.contentEditable = 'true';
     });
+}
+
+// 强制设置 mark（如 fontSize）
+function setMark(markType: MarkType, attrs: any) {
+  return function(state: EditorState, dispatch: (tr: Transaction) => void) {
+    const { from, to, empty } = state.selection;
+    let tr = state.tr;
+
+    // 1. 先移除已有的同类 mark
+    tr.removeMark(from, to, markType);
+
+    // 2. 再加上新的 mark
+    if (!empty) {
+      tr.addMark(from, to, markType.create(attrs));
+    } else {
+      tr.setStoredMarks([markType.create(attrs)]);
+    }
+
+    if (dispatch) dispatch(tr.scrollIntoView());
+    return true;
+  }
 }

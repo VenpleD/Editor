@@ -1,6 +1,7 @@
 import { Plugin } from 'prosemirror-state';
+import GlobalStyle from './Global.ts';
 
-function createCursorInfoPlugin(bridge) {
+function CreateCursorInfoPlugin(bridge) {
     return new Plugin({
         view(editorView) {
             let lastSelection = editorView.state.selection;
@@ -10,17 +11,19 @@ function createCursorInfoPlugin(bridge) {
                     // 判断 selection 是否变化
                     if (!state.selection.eq(lastSelection)) {
                         lastSelection = state.selection;
-                        const { from, empty } = state.selection;
-                        const $from = state.selection.$from;
-                        console.log('parent node type:', $from.parent.type.name);
+                        const { $from, empty, $anchor } = state.selection;
+                        console.log('parent node type:', $anchor.parent.type.name);
                         console.log('storedMarks:', state.storedMarks);
-                        console.log('marks at cursor:', $from.marks());
+                        console.log('marks at cursor:', $anchor.marks());
 
-                        let marks = empty
-                            ? (state.storedMarks || $from.marks())
-                            : state.doc.rangeHasMark(state.selection.from, state.selection.to, state.schema.marks.strong)
-                                ? [state.schema.marks.strong.create()]
-                                : [];
+                        let marks;
+                        if (!empty) {
+                            // 光标插入点，优先取 storedMarks，否则取当前位置 marks
+                            marks = state.storedMarks || $anchor.marks();
+                        } else {
+                            // 有选区，取选区起点 marks（也可以遍历选区所有 marks）
+                            marks = $from.marks();
+                        }
 
                         // 字体样式
                         let isBold = marks.some(mark => mark.type.name === 'strong');
@@ -37,9 +40,13 @@ function createCursorInfoPlugin(bridge) {
                         let bgColor = bgColorMark ? (bgColorMark.attrs.bgColor || bgColorMark.attrs.backgroundColor) : "bgClearColor";
 
                         // 对齐方式（通常是段落节点的 attrs）
-                        let align = $from.parent.attrs.align || $from.parent.attrs.textAlign || 'left';
+                        let align = $anchor.parent.attrs.align || $anchor.parent.attrs.textAlign || 'left';
 
-                        let fontValue = $from.parent.attrs.fontSize || '16px';
+                        let fontSizeMark = marks.find(mark => mark.type.name === 'fontSize');
+                        let fontValue = '16px'; // 默认字体大小
+                        if (fontSizeMark && fontSizeMark.attrs.fontSize) {
+                            fontValue = GlobalStyle.convertToPx(fontSizeMark.attrs.fontSize) + 'px';
+                        }
                         let infoMap = {
                             bold: isBold,
                             italic: isItalic,
@@ -51,7 +58,7 @@ function createCursorInfoPlugin(bridge) {
                         infoMap[textColor] = true;
                         infoMap[bgColor] = true;
                         bridge.asyncFontInfo(infoMap);
-                        console.log('光标位置hahah marks:', marks, '加粗:', isBold, '斜体:', isItalic);
+                        console.log('光标位置:', infoMap);
                     }
                 }
             };
@@ -59,4 +66,4 @@ function createCursorInfoPlugin(bridge) {
     })
 }
 
-export default createCursorInfoPlugin;
+export default CreateCursorInfoPlugin;
