@@ -89,7 +89,7 @@ export const FocusLastedNode = (view: EditorView) => {
     let tr1 = state1.tr;
     let lastNodeObj = Utils.lastNodeWith(state1);
     if (!lastNodeObj.node || !lastNodeObj.pos) { return; }
-    let lastNodeContent = lastNodeObj.node.text ;
+    let lastNodeContent = lastNodeObj.node.text;
     const { checkString } = UseTypeChecker();
     let resultPosIndex = lastNodeObj.posIndex + lastNodeObj.node.nodeSize - 1;
     if (!checkString(lastNodeContent).isEmpty) {
@@ -105,9 +105,12 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
     const { state, dispatch } = view;
     const { tr, selection } = state;
     const { $anchor, $from, $to } = selection;
-
+    console.log("insertImage" + "anchor:" + $anchor.pos + " from:" + $from.pos + " to:" + $to.pos + "empty:" + selection.empty);
     /// 是否需要图片后面空行
     let needNextP = false;
+
+    // 当前是否有选择范围
+    let selectEmpty = selection.empty;
 
     /// 在现有内容后面追加内容
     let appendAtContentTrail = false;
@@ -117,18 +120,32 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
 
     let currentNode = $anchor.node($anchor.depth).content.firstChild;
     if (!isObjectEmpty(currentNode) && !checkString(currentNode?.text).isEmpty) {
-        let rightPos = (currentNode?.nodeSize ?? 0) + 1;
-        // 如果有选择范围，并且最大的是在当前节点最右边，这个时候替换这款内容需要换行
-        let hasRangeNext = rangeMax != rangeMin && rangeMax == rightPos;
+        let contentLength = currentNode?.nodeSize ?? 0;
+        let rightPos = contentLength + 1;
+        let selectAll = (rangeMax - rangeMin) == contentLength;
 
         // 如果光标在最右边
-        let atRight = $anchor.pos == rightPos;
-        if (atRight || hasRangeNext) {
+        let atRight = $anchor.parentOffset === $anchor.parent.content.size;
+        let atLeft = $anchor.parentOffset === 0;
+
+        if (atRight) {
             needNextP = true;
-            appendAtContentTrail = true;
+            appendAtContentTrail = !selectEmpty;
+        } else if (atLeft) {
+            /// 光标再左，全选
+            needNextP = selectAll;
+            appendAtContentTrail = false;
+        } else {
+            /// 光标再中间，就看是否选择到了最后
+            needNextP = rangeMax == rightPos;
+            appendAtContentTrail = !selectEmpty;
         }
+        /// 如果全选了内容，并且光标在最左边，或者光标在最右边，则需要将rangeMin减1
+        if (selectAll || atLeft) rangeMin -= 1;
     } else {
         needNextP = true;
+        /// 这里当前行为空，也需要减1去掉当前行
+        rangeMin -= 1;
     }
 
     const imageNode = currentSchema.nodes.nestedImage.create({
@@ -142,9 +159,7 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
     });
     const fragment = Fragment.fromArray([imageNode, nestedParagraphNode]);
     let imageContainerNode = currentSchema.nodes.imageContainer.create(null, fragment);
-    const nextParagraph = currentSchema.nodes.paragraph.create({
-        class: 'containerNextP'
-    });
+    const nextParagraph = currentSchema.nodes.paragraph.create();
     const resultFragment = needNextP ? Fragment.fromArray([imageContainerNode, nextParagraph]) : Fragment.fromArray([imageContainerNode]);
     if (imageContainerNode) {
         if (appendAtContentTrail) {
@@ -194,21 +209,21 @@ function settingTextareaDom(view: EditorView) {
 
 // 强制设置 mark（如 fontSize）
 function setMark(markType: MarkType, attrs: any) {
-  return function(state: EditorState, dispatch: (tr: Transaction) => void) {
-    const { from, to, empty } = state.selection;
-    let tr = state.tr;
+    return function (state: EditorState, dispatch: (tr: Transaction) => void) {
+        const { from, to, empty } = state.selection;
+        let tr = state.tr;
 
-    // 1. 先移除已有的同类 mark
-    tr.removeMark(from, to, markType);
+        // 1. 先移除已有的同类 mark
+        tr.removeMark(from, to, markType);
 
-    // 2. 再加上新的 mark
-    if (!empty) {
-      tr.addMark(from, to, markType.create(attrs));
-    } else {
-      tr.setStoredMarks([markType.create(attrs)]);
+        // 2. 再加上新的 mark
+        if (!empty) {
+            tr.addMark(from, to, markType.create(attrs));
+        } else {
+            tr.setStoredMarks([markType.create(attrs)]);
+        }
+
+        if (dispatch) dispatch(tr.scrollIntoView());
+        return true;
     }
-
-    if (dispatch) dispatch(tr.scrollIntoView());
-    return true;
-  }
 }

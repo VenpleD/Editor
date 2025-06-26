@@ -1,11 +1,11 @@
 import { EditorView } from "prosemirror-view";
-import { useRef } from "react";
 import { InsertImageCommand, FocusLastedNode, FontCommand } from "./Commands.ts";
 import ContentSchema from "./ContentSchema.ts";
 import UseTypeChecker from "./Object.js";
+import GlobalStyle from "./Global.ts";
 
 export interface DDBridge {
-    call(funcName: string, params: JSON, callback: Function | null): any;
+    call(funcName: string, params: object, callback: Function | null): any;
     registerSync(funcName: string, funcObj: Function): void;
     registerAsync(funcName: string, funcObj: Function): void;
 }
@@ -30,7 +30,7 @@ class NativeBridge {
         }
     }
 
-    public asyncFontInfo (params: JSON) {
+    public asyncFontInfo (params: object) {
         if (!this.nativeBridge) { return;}
         this.nativeBridge.call('asyncFontInfo', params, null);
     }
@@ -52,7 +52,7 @@ class NativeBridge {
         if (view) {
             view.focus();
             setTimeout(() => {
-                if (getType(params) == 'function') {
+                if (getType(params) === 'function') {
                     params(true)
                 }
             }, 0);
@@ -66,7 +66,7 @@ class NativeBridge {
         if (view) {
             view.dom.blur()
             setTimeout(() => {
-                if (getType(params) == 'function') {
+                if (getType(params) === 'function') {
                     params(true)
                 }
             }, 0);
@@ -77,7 +77,7 @@ class NativeBridge {
     private hasFocused = (params: any) => {
         let view = this.viewRef.current
         const { getType } = UseTypeChecker()
-        if (getType(params) == 'function') {
+        if (getType(params) === 'function') {
             if (view) {
                 params(view.hasFocus())
             } else {
@@ -87,14 +87,23 @@ class NativeBridge {
     }
 
     private settingFont =  (params: any, callback: Function) => {
-        const { getType } = UseTypeChecker()
+        const { getType, checkString } = UseTypeChecker()
         let view = this.viewRef.current
         if (!view) {return}
         let funcName = params.funcName;
         let paramString = params.paramString;
         console.log('settingFont', funcName, paramString);
-        let result = FontCommand[funcName](view, paramString);
-        if (callback && getType(callback) == 'function') {
+        let styleValue = GlobalStyle.styleAllMap[paramString];       
+        if (checkString(funcName).isEmpty || checkString(paramString).isEmpty) {
+            console.error('settingFont: funcName or paramString is empty');
+            return; 
+        }
+         if (checkString(styleValue).isNotEmpty) {
+            console.error('settingFont: paramString is not a valid style value');
+            return;
+        }
+        let result = FontCommand[funcName](view, styleValue);
+        if (callback && getType(callback) === 'function') {
             callback(result);
         }
     }
@@ -108,5 +117,6 @@ class NativeBridge {
     }
 
 }
+
 
 export default NativeBridge;
