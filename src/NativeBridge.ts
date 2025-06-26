@@ -21,13 +21,32 @@ interface InsertImageParams {
 }
 
 class NativeBridge {
-    viewRef: React.RefObject<EditorView | null>;
+    private static instance: NativeBridge;
+    public titleViewRef: React.RefObject<EditorView | null> | null = null;
+    public contentViewRef: React.RefObject<EditorView | null> | null = null;
     private nativeBridge: DDBridge = window.ddBridge;
-    constructor(viewRef: React.RefObject<EditorView | null>) {
-        this.viewRef = viewRef;
+
+    private constructor() {
         if (this.nativeBridge) {
             this.commonFunc();
         }
+    }
+
+    public static getInstance() {
+        if (!NativeBridge.instance) {
+            NativeBridge.instance = new NativeBridge();
+        }
+        return NativeBridge.instance;
+    }
+
+    // 设置 title 编辑器的 ref
+    public setTitleViewRef(ref: React.RefObject<EditorView | null>) {
+        this.titleViewRef = ref;
+    }
+
+    // 设置 content 编辑器的 ref
+    public setContentViewRef(ref: React.RefObject<EditorView | null>) {
+        this.contentViewRef = ref;
     }
 
     public asyncFontInfo (params: object) {
@@ -36,11 +55,11 @@ class NativeBridge {
     }
 
     private insertImage = (params: InsertImageParams) => {
-        if (this.viewRef.current) {
-            InsertImageCommand(this.viewRef.current, params.imageLocalPath, ContentSchema);
+        if (this.contentViewRef?.current) {
+            InsertImageCommand(this.contentViewRef.current, params.imageLocalPath, ContentSchema);
             setTimeout(() => {
-                if (this.viewRef.current) {
-                    FocusLastedNode(this.viewRef.current);
+                if (this.contentViewRef?.current) {
+                    FocusLastedNode(this.contentViewRef.current);
                 }
             }, 200);
         }
@@ -48,7 +67,7 @@ class NativeBridge {
 
     private becomeFirstResponse = (params: any) => {
         const { getType } = UseTypeChecker()
-        let view = this.viewRef.current
+        let view = this.contentViewRef?.current
         if (view) {
             view.focus();
             setTimeout(() => {
@@ -62,7 +81,7 @@ class NativeBridge {
 
     private resignFirstResponse = (params: any) => {
         const { getType } = UseTypeChecker()
-        let view = this.viewRef.current
+        let view = this.contentViewRef?.current
         if (view) {
             view.dom.blur()
             setTimeout(() => {
@@ -75,7 +94,7 @@ class NativeBridge {
     }
 
     private hasFocused = (params: any) => {
-        let view = this.viewRef.current
+        let view = this.contentViewRef?.current
         const { getType } = UseTypeChecker()
         if (getType(params) === 'function') {
             if (view) {
@@ -88,7 +107,7 @@ class NativeBridge {
 
     private settingFont =  (params: any, callback: Function) => {
         const { getType, checkString } = UseTypeChecker()
-        let view = this.viewRef.current
+        let view = this.contentViewRef?.current
         if (!view) {return}
         let funcName = params.funcName;
         let paramString = params.paramString;
@@ -106,6 +125,21 @@ class NativeBridge {
         if (callback && getType(callback) === 'function') {
             callback(result);
         }
+    }
+
+    /**
+     * 同步编辑器区域点击/状态信息
+     * @param type 区域类型，如 'title' | 'content' | 'image' | 'textarea'
+     * @param extra 额外信息（可选）
+     */
+    public asyncCurrentTarget(type: string, extra?: object) {
+        console.log('[asyncCurrentTarget]', { type, ...extra });
+        if (!this.nativeBridge) return;
+        if (type === 'app') {
+            this.nativeBridge.call('jsSetFirstResponse', { 'set': false }, null);
+            return;
+        }
+        this.nativeBridge.call('jsSetToolBar', { 'hide': type !== 'content' }, null);
     }
 
     private commonFunc() {

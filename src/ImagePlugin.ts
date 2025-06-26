@@ -6,6 +6,11 @@ import UseTypeChecker from './Object.js';
 const ImagePlugin = new Plugin({
     props: {
         handleDOMEvents: {
+            click(view: EditorView, event: MouseEvent): boolean {
+                console.log("domClick");
+                event.stopPropagation(); // 阻止事件冒泡到 App.js
+                return false;
+            },
             keydown(view: EditorView, event: KeyboardEvent): boolean {
                 // 只处理 Backspace 和 Delete
                 const { state, dispatch } = view;

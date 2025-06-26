@@ -4,7 +4,7 @@ import GlobalStyle from './Global.ts';
 import NativeBridge from './NativeBridge.ts';
 
 // 提取获取 marks 信息的方法
-function getFontInfoMap(state: EditorState): Record<string, boolean> {
+export function getFontInfoMap(state: EditorState): Record<string, boolean> {
     const { $from, empty, $anchor } = state.selection;
     let marks;
     if (!empty) {

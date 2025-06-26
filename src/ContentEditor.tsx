@@ -13,12 +13,13 @@ import UseTypeChecker from './Object.js';
 import NativeBridge from './NativeBridge.ts';
 import { FocusLastedNode } from './Commands.ts';
 import CreateCursorInfoPlugin from './CursorInfoPlugin.ts';
+import { getFontInfoMap } from './CursorInfoPlugin.ts';
 import ImagePlugin from './ImagePlugin.ts';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
   const viewRef = useRef<EditorView | null>(null)
-  const nativeBridge = new NativeBridge(viewRef);
+  NativeBridge.getInstance().setContentViewRef(viewRef);
   // var prosemirrorState = require('prosemirror-state');
 
   var backspaceKey = new PluginKey("'backspace'");
@@ -35,7 +36,23 @@ const ContentEditor = () => {
         keymap(baseKeymap),  // 添加基础的键盘快捷键，如回车键换行等默认操作
         ImagePlugin,
         placeholder('请输入正文', 'contentPlaceholderClass'),
-        CreateCursorInfoPlugin(nativeBridge)
+        CreateCursorInfoPlugin(NativeBridge.getInstance()),
+        new Plugin({
+          props: {
+            handleClick(view, pos, event) {
+              const target = event.target as HTMLElement;
+              if (target.classList.contains('imageContainerTextarea')) {
+                NativeBridge.getInstance().asyncCurrentTarget('textarea', {a: "1"});
+              } else if (target.closest('.imageContainer')) {
+                NativeBridge.getInstance().asyncCurrentTarget('image');
+              } else {
+                NativeBridge.getInstance().asyncCurrentTarget('content');
+              }
+
+              return false;
+            }
+          }
+        })
       ]
     });
     // 创建编辑器视图并挂载到DOM元素上

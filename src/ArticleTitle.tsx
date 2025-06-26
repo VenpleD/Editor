@@ -8,6 +8,7 @@ import { keymap } from 'prosemirror-keymap';
 import { history, undo, redo } from 'prosemirror-history';
 import { baseKeymap } from 'prosemirror-commands';
 import placeholder from './Placeholder/placeholder.js';
+import NativeBridge from './NativeBridge.ts';
 
 // 扩展基本的schema以包含列表相关节点
 // const mySchema = new Schema({
@@ -28,6 +29,7 @@ const mySchema = new Schema({
 
 const ArticleTitle = () => {
     const editorRef = useRef(null);
+    NativeBridge.getInstance().setTitleViewRef(editorRef);
 
     const [showPrompt, setShowPrompt] = useState(false); // 用于控制提示框是否显示
     const [promptText, setPromptText] = useState(''); // 用于存储提示框的文本内容
@@ -39,19 +41,19 @@ const ArticleTitle = () => {
         // 创建初始的编辑器状态
         var myParser = DOMParser.fromSchema(mySchema);
         console.log(myParser);
-        let myPlugin = new Plugin({
+        const asyncCurrentTargetPlugin = new Plugin({
             props: {
-                // handleKeyDown(view, event) {
-                //     console.log("A key was pressed!");
-                //     return false;
-                // },
-                // handleTextInput(view, from, to, text) {
-                //     console.log("A key was input!");
-                //     if (text === 'a') {
-                //         return true;
-                //     }
-                //     return false;
-                // }
+                handleDOMEvents: {
+                    click(view: EditorView, event: MouseEvent): boolean {
+                        event.stopPropagation(); // 阻止事件冒泡到 App.js
+                        return false;
+                    },
+                },
+                handleClick(view, pos, event) {
+                    NativeBridge.getInstance().asyncCurrentTarget('title');
+                    // 返回 false 让事件继续冒泡
+                    return false;
+                }
             }
         })
         const state = EditorState.create({
@@ -64,7 +66,7 @@ const ArticleTitle = () => {
                 }),
                 history(),
                 keymap(baseKeymap),  // 添加基础的键盘快捷键，如回车键换行等默认操作
-                myPlugin,
+                asyncCurrentTargetPlugin,
                 placeholder('请输入标题（2~30个字）', 'titlePlaceholderClass'),
             ]
         });
