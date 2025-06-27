@@ -1,6 +1,7 @@
 import { Schema, Fragment, Node, NodeType, NodeSpec, DOMOutputSpec } from 'prosemirror-model';
 import { schema as basicSchema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
+import { NodeView } from 'prosemirror-view';
 
 // 1. 定义所有 marks
 const underlineMark = {
@@ -91,27 +92,39 @@ const paragraphWithAlign = {
 
 // 其它自定义节点
 const imageContainerNode = {
-  content: 'block+',
   group: 'block',
   draggable: false,
-  parseDOM: [{
-    tag: 'div',
-    getAttrs: (dom) => {
-      return {};
-    },
-  }],
-  toDOM: (node) => {
-    let domChildren: DOMOutputSpec[] = [];
-    node.content.forEach((childNode: Node) => {
-      if (childNode.type.spec.toDOM) {
-        let childDOM = childNode.type.spec.toDOM(childNode);
-        if (childDOM) {
-          domChildren.push(childDOM);
-        }
-      }
-    });
-    return ['div', { class: 'imageContainer', }, ...domChildren] as const;
+  attrs: {
+    src: { default: '' },
+    value: { default: '' },
+    placeholder: { default: '' },
+    cls: { default: '' }
   },
+  parseDOM: [{
+    tag: 'div.imageContainer',
+    getAttrs(dom) {
+      const img = dom.querySelector('img');
+      const textarea = dom.querySelector('textarea');
+      return {
+        src: img ? img.getAttribute('src') : '',
+        value: textarea ? textarea.value : '',
+        placeholder: textarea ? textarea.getAttribute('placeholder') : '',
+        cls: textarea ? textarea.getAttribute('class') : ''
+      };
+    }
+  }],
+  toDOM(node) {
+    return [
+      'div',
+      { class: 'imageContainer' },
+      ['img', { src: node.attrs.src }],
+      ['textarea', {
+        value: node.attrs.value,
+        placeholder: node.attrs.placeholder,
+        class: node.attrs.cls
+      }, node.attrs.value]
+    ] as const;
+  }
 };
 
 const nestedImageNode = {
@@ -182,3 +195,33 @@ const ContentSchema = new Schema({
 });
 
 export default ContentSchema;
+
+export class ImageContainerView implements NodeView {
+  dom: HTMLElement;
+  constructor(node, view, getPos) {
+    // 创建外层 div
+    this.dom = document.createElement('div');
+    this.dom.className = 'imageContainer';
+
+    // 创建 img
+    const img = document.createElement('img');
+    img.src = node.attrs.src || '';
+    img.className = node.attrs.cls || 'custom-image-class';
+    this.dom.appendChild(img);
+
+    // 创建 textarea
+    const textarea = document.createElement('textarea');
+    textarea.value = node.attrs.value || '';
+    textarea.placeholder = node.attrs.placeholder || '';
+    textarea.className = node.attrs.cls || '';
+    textarea.addEventListener('input', (e) => {
+      // 更新节点属性
+      const tr = view.state.tr.setNodeMarkup(getPos(), undefined, {
+        ...node.attrs,
+        value: textarea.value
+      });
+      view.dispatch(tr);
+    });
+    this.dom.appendChild(textarea);
+  }
+}

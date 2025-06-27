@@ -1,4 +1,4 @@
-import { Fragment, MarkType, Schema } from "prosemirror-model";
+import { Fragment, MarkType, Schema, Slice } from "prosemirror-model";
 import Utils from "./Utils.ts";
 import UseTypeChecker from "./Object.js";
 import { EditorState, NodeSelection, Selection, TextSelection, Transaction } from "prosemirror-state";
@@ -101,77 +101,127 @@ export const FocusLastedNode = (view: EditorView) => {
 }
 
 export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSchema: Schema) => {
-    const { getType, isInstanceOfCustomClass, checkString, isObjectEmpty } = UseTypeChecker();
     const { state, dispatch } = view;
     const { tr, selection } = state;
-    const { $anchor, $from, $to } = selection;
-    console.log("insertImage" + "anchor:" + $anchor.pos + " from:" + $from.pos + " to:" + $to.pos + "empty:" + selection.empty);
-    /// 是否需要图片后面空行
-    let needNextP = false;
+    const { $from, $to, empty } = selection;
 
-    // 当前是否有选择范围
-    let selectEmpty = selection.empty;
+    // 判断当前段落是否为空段落
+    const isEmptyParagraph = $from.parent.isTextblock && $from.parent.content.size === 0;
 
-    /// 在现有内容后面追加内容
-    let appendAtContentTrail = false;
+    // 判断光标/选区右侧是否有内容
+    const rightHasContent = !empty
+        ? $to.parentOffset < $to.parent.content.size
+        : $from.parentOffset < $from.parent.content.size;
 
-    let rangeMax = Math.max($from.pos, $to.pos);
-    let rangeMin = Math.min($from.pos, $to.pos);
+    // 判断是否在段落开头插入
+    const atLeft = $from.parentOffset === 0;
+    const atRight = $from.parentOffset === $from.parent.content.size;
+    const isWholeParagraphSelected =
+        $from.parent === $to.parent &&
+        $from.parentOffset === 0 &&
+        $to.parentOffset === $to.parent.content.size;
+    // 判断选区是否选择到了段落最后
+    const selectToEnd = $to.parentOffset === $to.parent.content.size;
 
-    let currentNode = $anchor.node($anchor.depth).content.firstChild;
-    if (!isObjectEmpty(currentNode) && !checkString(currentNode?.text).isEmpty) {
-        let contentLength = currentNode?.nodeSize ?? 0;
-        let rightPos = contentLength + 1;
-        let selectAll = (rangeMax - rangeMin) == contentLength;
+    let needNextPara = false;
+    let replaceCurrentPara = false;
 
-        // 如果光标在最右边
-        let atRight = $anchor.parentOffset === $anchor.parent.content.size;
-        let atLeft = $anchor.parentOffset === 0;
+    let leftPos = $from.pos;
 
-        if (atRight) {
-            needNextP = true;
-            appendAtContentTrail = !selectEmpty;
-        } else if (atLeft) {
-            /// 光标再左，全选
-            needNextP = selectAll;
-            appendAtContentTrail = false;
-        } else {
-            /// 光标再中间，就看是否选择到了最后
-            needNextP = rangeMax == rightPos;
-            appendAtContentTrail = !selectEmpty;
-        }
-        /// 如果全选了内容，并且光标在最左边，或者光标在最右边，则需要将rangeMin减1
-        if (selectAll || atLeft) rangeMin -= 1;
-    } else {
-        needNextP = true;
-        /// 这里当前行为空，也需要减1去掉当前行
-        rangeMin -= 1;
-    }
+    console.log('atLeft:', atLeft, 'rightHasContent:', rightHasContent, 'isEmptyParagraph:', isEmptyParagraph, 'empty:', empty);
 
-    const imageNode = currentSchema.nodes.nestedImage.create({
-        src: imageUrl
-    });
-    let textClsName = 'imageContainerTextarea';
-    const nestedParagraphNode = currentSchema.nodes.nestedParagraph.create({
+    // 构造 imageContainer 节点
+    const imageContainerNode = currentSchema.nodes.imageContainer.create({
+        src: imageUrl,
+        value: '',
         placeholder: '请输入内容',
-        value: '哈哈',
-        cls: textClsName,
+        cls: 'imageContainerTextarea'
     });
-    const fragment = Fragment.fromArray([imageNode, nestedParagraphNode]);
-    let imageContainerNode = currentSchema.nodes.imageContainer.create(null, fragment);
-    const nextParagraph = currentSchema.nodes.paragraph.create();
-    const resultFragment = needNextP ? Fragment.fromArray([imageContainerNode, nextParagraph]) : Fragment.fromArray([imageContainerNode]);
-    if (imageContainerNode) {
-        if (appendAtContentTrail) {
-            dispatch(tr.insert(Math.max(rangeMax, $anchor.pos), resultFragment).scrollIntoView());
-        } else {
-            dispatch(tr.replaceWith(rangeMin, rangeMax, resultFragment).scrollIntoView());
+    if (!isEmptyParagraph) {
+        if (atRight) {
+            needNextPara = true;
+            replaceCurrentPara = false;
         }
-        setTimeout(() => {
-            settingTextareaDom(view);
-        }, 0);
+        else if (atLeft) {
+            needNextPara = isWholeParagraphSelected;
+            replaceCurrentPara = !empty;
+        }
+        else {
+            needNextPara = selectToEnd;
+            replaceCurrentPara = !empty;
+        }
+        if (isWholeParagraphSelected || atLeft) leftPos -= 1;
+    } else {
+        needNextPara = true;
+        replaceCurrentPara = true;
+        leftPos -= 1;
+    }
+    let fragment;
+    if (needNextPara) {
+        // 段落中间插入，且右侧没内容，插入空行
+        const nextParagraph = currentSchema.nodes.paragraph.create();
+        fragment = Fragment.fromArray([imageContainerNode, nextParagraph]);
+    } else {
+        // 其它情况只插入图片
+        fragment = Fragment.fromArray([imageContainerNode]);
+    }
+    if (imageContainerNode) {
+        let result;
+        result = tr.split(leftPos);
+        if (replaceCurrentPara) {
+            result = tr.replaceWith(leftPos, $to.pos, fragment);
+        }
+        else {
+            result = tr.insert(leftPos, fragment);
+        }
+        dispatch(tr.scrollIntoView());
+        setTimeout(() => settingTextareaDom(view), 0);
         return true;
     }
+    return false;
+    // 只有在不是段落结尾且不是段落开头时才插入空行
+    // let fragment;
+    // if (!rightHasContent && !atLeft && !isEmptyParagraph) {
+    //     // 段落中间插入，且右侧没内容，插入空行
+    //     const nextParagraph = currentSchema.nodes.paragraph.create();
+    //     fragment = Fragment.fromArray([imageContainerNode, nextParagraph]);
+    // } else {
+    //     // 其它情况只插入图片
+    //     fragment = Fragment.fromArray([imageContainerNode]);
+    // }
+
+    // if (!empty) {
+    //     // 有选区，先删除选区内容，再插入
+    //     tr.deleteSelection();
+    //     tr.insert(tr.selection.from, fragment);
+    //     dispatch(tr.scrollIntoView());
+    //     setTimeout(() => settingTextareaDom(view), 0);
+    //     return true;
+    // }
+
+    // if (isEmptyParagraph) {
+    //     // 直接替换当前空段落
+    //     const paraPos = $from.before();
+    //     dispatch(tr.replaceWith(paraPos, paraPos + $from.parent.nodeSize, fragment).scrollIntoView());
+    //     setTimeout(() => settingTextareaDom(view), 0);
+    //     return true;
+    // }
+
+    // // 其它情况（段落非空）
+    // let insertPos = $from.pos;
+
+    // if (!atLeft && !atRight) {
+    //     tr.split(insertPos);
+    //     insertPos += 1;
+    // } else if (atRight) {
+    //     insertPos = $from.end();
+    // }
+    // // atLeft 时 insertPos 就是 $from.pos
+
+    // tr.insert(insertPos, fragment);
+    // dispatch(tr.scrollIntoView());
+    // setTimeout(() => settingTextareaDom(view), 0);
+    // return true;
 };
 
 function settingTextareaDom(view: EditorView) {
