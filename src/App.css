@@ -103,7 +103,6 @@ html {
   flex-grow: 1; 
   /* display: flex;
   /* height: 100%; */
-  padding-bottom: 100px;
   padding-left: 16PX;
   padding-right: 16PX;
 
@@ -113,6 +112,7 @@ html {
 .contentWrapper .ProseMirror {
   /* flex-grow: 1; */
   height: 100%;
+  padding-bottom: 50px;
 }
 
 .contentWrapper .ProseMirror p {
