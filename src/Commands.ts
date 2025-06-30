@@ -1,4 +1,4 @@
-import { Fragment, MarkType, Schema, Slice } from "prosemirror-model";
+import { Fragment, MarkType, Schema, Slice, Node as ProseMirrorNode } from "prosemirror-model";
 import Utils from "./Utils.ts";
 import UseTypeChecker from "./Object.js";
 import { EditorState, NodeSelection, Selection, TextSelection, Transaction } from "prosemirror-state";
@@ -6,6 +6,8 @@ import { EditorView } from "prosemirror-view";
 import ContentSchema from "./ContentSchema.ts";
 import { toggleMark, setBlockType } from "prosemirror-commands";
 import GlobalStyle from "./Global.ts";
+import TransactionCallbackManager from './TransactionCallbackManager.ts';
+import { redo, undo } from "prosemirror-history";
 
 type FontFunction = {
     bold: (view: EditorView) => (Boolean);
@@ -83,21 +85,13 @@ export const FontCommand: FontFunction = {
     }
 };
 
-export const FocusLastedNode = (view: EditorView) => {
-    let state1 = view.state;
-    let dispatch1 = view.dispatch;
-    let tr1 = state1.tr;
-    let lastNodeObj = Utils.lastNodeWith(state1);
-    if (!lastNodeObj.node || !lastNodeObj.pos) { return; }
-    let lastNodeContent = lastNodeObj.node.text;
-    const { checkString } = UseTypeChecker();
-    let resultPosIndex = lastNodeObj.posIndex + lastNodeObj.node.nodeSize - 1;
-    if (!checkString(lastNodeContent).isEmpty) {
-        // 如果最后一个节点内容为空，则直接选中该节点
-        resultPosIndex = lastNodeObj.posIndex;
-    }
-    let lastSel = TextSelection.create(tr1.doc, resultPosIndex);
-    dispatch1(tr1.setSelection(lastSel).scrollIntoView());
+export const FocusImageNextNode = (view: EditorView, node: ProseMirrorNode) => {
+    const { state, dispatch } = view;
+    const { tr } = state;
+    let nextNode = Utils.findNextNode(state, node);
+    dispatch(
+        tr.setSelection(TextSelection.create(tr.doc, nextNode.posIndex + 1)).scrollIntoView()
+    );
 }
 
 export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSchema: Schema) => {
@@ -130,12 +124,15 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
 
     console.log('atLeft:', atLeft, 'rightHasContent:', rightHasContent, 'isEmptyParagraph:', isEmptyParagraph, 'empty:', empty);
 
+    const imageUploadId = Date.now().toString();
+
     // 构造 imageContainer 节点
     const imageContainerNode = currentSchema.nodes.imageContainer.create({
         src: imageUrl,
         value: '',
         placeholder: '请输入内容',
-        cls: 'imageContainerTextarea'
+        cls: 'imageContainerTextarea',
+        upload_id: imageUploadId
     });
     if (!isEmptyParagraph) {
         if (atRight) {
@@ -167,95 +164,30 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
     }
     if (imageContainerNode) {
         let result;
-        result = tr.split(leftPos);
+        // result = tr.split(leftPos);
         if (replaceCurrentPara) {
             result = tr.replaceWith(leftPos, $to.pos, fragment);
         }
         else {
             result = tr.insert(leftPos, fragment);
         }
-        dispatch(tr.scrollIntoView());
-        setTimeout(() => settingTextareaDom(view), 0);
+        TransactionCallbackManager.add((updateState, updateView) => {
+            FocusImageNextNode(view, imageContainerNode);
+            // settingTextareaDom(updateView);
+        });
+        dispatch(tr);
         return true;
     }
     return false;
-    // 只有在不是段落结尾且不是段落开头时才插入空行
-    // let fragment;
-    // if (!rightHasContent && !atLeft && !isEmptyParagraph) {
-    //     // 段落中间插入，且右侧没内容，插入空行
-    //     const nextParagraph = currentSchema.nodes.paragraph.create();
-    //     fragment = Fragment.fromArray([imageContainerNode, nextParagraph]);
-    // } else {
-    //     // 其它情况只插入图片
-    //     fragment = Fragment.fromArray([imageContainerNode]);
-    // }
-
-    // if (!empty) {
-    //     // 有选区，先删除选区内容，再插入
-    //     tr.deleteSelection();
-    //     tr.insert(tr.selection.from, fragment);
-    //     dispatch(tr.scrollIntoView());
-    //     setTimeout(() => settingTextareaDom(view), 0);
-    //     return true;
-    // }
-
-    // if (isEmptyParagraph) {
-    //     // 直接替换当前空段落
-    //     const paraPos = $from.before();
-    //     dispatch(tr.replaceWith(paraPos, paraPos + $from.parent.nodeSize, fragment).scrollIntoView());
-    //     setTimeout(() => settingTextareaDom(view), 0);
-    //     return true;
-    // }
-
-    // // 其它情况（段落非空）
-    // let insertPos = $from.pos;
-
-    // if (!atLeft && !atRight) {
-    //     tr.split(insertPos);
-    //     insertPos += 1;
-    // } else if (atRight) {
-    //     insertPos = $from.end();
-    // }
-    // // atLeft 时 insertPos 就是 $from.pos
-
-    // tr.insert(insertPos, fragment);
-    // dispatch(tr.scrollIntoView());
-    // setTimeout(() => settingTextareaDom(view), 0);
-    // return true;
 };
 
-function settingTextareaDom(view: EditorView) {
-    // state要重新获取，因为view刷新过之后，state也会重新创建，并不会修改原有state，而是重新创建
-    let state1 = view.state;
-    let imageContainerNode = Utils.findNodeWith(state1, 'imageContainer');
-    if (!imageContainerNode.node) {
-        console.warn('没有找到 imageContainer 节点');
-        return;
-    }
+export const UndoCommand = (view: EditorView) => {
+    return undo(view.state, view.dispatch);
+};
 
-    let imageContainerDom = view.nodeDOM(imageContainerNode.posIndex) as HTMLElement;
-    // imageContainerDom as DOMNode
-    let textareaDom = imageContainerDom.querySelector('.imageContainerTextarea');
-    if (!textareaDom) {
-        console.warn('没有找到 imageContainerTextarea 节点');
-        return;
-    }
-    textareaDom.addEventListener('click', (e) => {
-        console.log('clickOn event on textarea:');
-    });
-    textareaDom.addEventListener('keydown', (e) => {
-
-        console.log('Keydown event on textarea:');
-        // 在这里添加更多的事件处理逻辑
-
-        // 阻止事件冒泡到父节点
-        e.stopPropagation();
-    });
-    textareaDom.addEventListener('blur', (e) => {
-        console.log('blue event on textarea:');
-        // view.dom.contentEditable = 'true';
-    });
-}
+export const RedoCommand = (view: EditorView) => {
+    return redo(view.state, view.dispatch);
+};
 
 // 强制设置 mark（如 fontSize）
 function setMark(markType: MarkType, attrs: any) {

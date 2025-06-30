@@ -2,6 +2,7 @@ import { Schema, Fragment, Node, NodeType, NodeSpec, DOMOutputSpec } from 'prose
 import { schema as basicSchema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
 import { NodeView } from 'prosemirror-view';
+import NativeBridge from './NativeBridge.ts';
 
 // 1. 定义所有 marks
 const underlineMark = {
@@ -94,11 +95,13 @@ const paragraphWithAlign = {
 const imageContainerNode = {
   group: 'block',
   draggable: false,
+  selectable: false,
   attrs: {
     src: { default: '' },
     value: { default: '' },
     placeholder: { default: '' },
-    cls: { default: '' }
+    cls: { default: '' },
+    upload_id: { default: '' }
   },
   parseDOM: [{
     tag: 'div.imageContainer',
@@ -109,7 +112,8 @@ const imageContainerNode = {
         src: img ? img.getAttribute('src') : '',
         value: textarea ? textarea.value : '',
         placeholder: textarea ? textarea.getAttribute('placeholder') : '',
-        cls: textarea ? textarea.getAttribute('class') : ''
+        cls: textarea ? textarea.getAttribute('class') : '',
+        upload_id: img ? img.getAttribute('upload_id') || '' : ''
       };
     }
   }],
@@ -117,7 +121,10 @@ const imageContainerNode = {
     return [
       'div',
       { class: 'imageContainer' },
-      ['img', { src: node.attrs.src }],
+      ['img', { 
+        src: node.attrs.src,
+        upload_id: node.attrs.upload_id,
+       }],
       ['textarea', {
         value: node.attrs.value,
         placeholder: node.attrs.placeholder,
@@ -127,66 +134,11 @@ const imageContainerNode = {
   }
 };
 
-const nestedImageNode = {
-  inline: true,
-  attrs: {
-    src: { validate: "string" },
-    alt: { default: null, validate: "string|null" },
-    title: { default: null, validate: "string|null" },
-    cls: { default: 'custom-image-class' }
-  },
-  group: "inline",
-  draggable: true,
-  parseDOM: [{
-    tag: "img[src]", getAttrs(dom) {
-      return {
-        src: dom.getAttribute("src"),
-        title: dom.getAttribute("title"),
-        alt: dom.getAttribute("alt")
-      };
-    }
-  }],
-  toDOM(node) {
-    let { src, alt, title, cls } = node.attrs;
-    return ["img", { src, alt, title, class: cls }] as const;
-  }
-};
-
-const nestedParagraphNode = {
-  content: '', // 可以包含零个或多个文本节点
-  group: 'block',
-  attrs: {
-    placeholder: { default: '' },
-    value: { default: '' },
-    cls: { default: '' },
-  },
-  draggable: false,
-  parseDOM: [
-    {
-      tag: 'textarea',
-      getAttrs: (dom) => ({
-        placeholder: dom.getAttribute('placeholder'),
-        value: dom.getAttribute('value'),
-        cls: dom.getAttribute('cls'),
-      })
-    }
-  ],
-  toDOM: (node) => {
-    return ['textarea', {
-      placeholder: node.attrs.placeholder,
-      value: node.attrs.value,
-      class: node.attrs.cls
-    }, node.attrs.value] as const;
-  },
-};
-
 // 合并 nodes
 const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block')
   .update("paragraph", paragraphWithAlign)
   .append({
     imageContainer: imageContainerNode,
-    nestedImage: nestedImageNode,
-    nestedParagraph: nestedParagraphNode
   });
 
 const ContentSchema = new Schema({
@@ -198,15 +150,18 @@ export default ContentSchema;
 
 export class ImageContainerView implements NodeView {
   dom: HTMLElement;
+
   constructor(node, view, getPos) {
     // 创建外层 div
     this.dom = document.createElement('div');
     this.dom.className = 'imageContainer';
+    this.dom.contentEditable = "false"; // 关键！
 
     // 创建 img
     const img = document.createElement('img');
     img.src = node.attrs.src || '';
     img.className = node.attrs.cls || 'custom-image-class';
+    img.setAttribute('upload_id', node.attrs.upload_id || '');
     this.dom.appendChild(img);
 
     // 创建 textarea
@@ -214,14 +169,14 @@ export class ImageContainerView implements NodeView {
     textarea.value = node.attrs.value || '';
     textarea.placeholder = node.attrs.placeholder || '';
     textarea.className = node.attrs.cls || '';
-    textarea.addEventListener('input', (e) => {
-      // 更新节点属性
-      const tr = view.state.tr.setNodeMarkup(getPos(), undefined, {
-        ...node.attrs,
-        value: textarea.value
-      });
-      view.dispatch(tr);
+    textarea.addEventListener('click', (e) => {
+      NativeBridge.getInstance().asyncCurrentTarget('textarea');
     });
     this.dom.appendChild(textarea);
+  }
+
+  // 关键：阻止 ProseMirror 处理 textarea 的事件
+  stopEvent(event: Event) {
+    return event.target instanceof HTMLTextAreaElement;
   }
 }

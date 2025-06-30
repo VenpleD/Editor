@@ -12,6 +12,7 @@ import NativeBridge from './NativeBridge.ts';
 import CreateCursorInfoPlugin from './CursorInfoPlugin.ts';
 import ImagePlugin from './ImagePlugin.ts';
 import { ImageContainerView } from './ContentSchema.ts';
+import TransactionCallbackManager from './TransactionCallbackManager.ts';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
@@ -62,9 +63,14 @@ const ContentEditor = () => {
         }
       },
       dispatchTransaction: (transaction) => {
-        // console.log("Document size went from", transaction.before.content.size, "to", transaction.doc.content.size)
         const newState = view.state.apply(transaction);
         view.updateState(newState);
+        /// DOM渲染2次之后，执行callBack操作
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            TransactionCallbackManager.runAll(newState, view);
+          });
+        });
       },
       attributes: {
         id: 'editor-view-id' // 设置 EditorView 的 id

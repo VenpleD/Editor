@@ -1,5 +1,5 @@
 import { EditorView } from "prosemirror-view";
-import { InsertImageCommand, FocusLastedNode, FontCommand } from "./Commands.ts";
+import { InsertImageCommand, UndoCommand, FontCommand, RedoCommand } from "./Commands.ts";
 import ContentSchema from "./ContentSchema.ts";
 import UseTypeChecker from "./Object.js";
 import GlobalStyle from "./Global.ts";
@@ -57,11 +57,6 @@ class NativeBridge {
     private insertImage = (params: InsertImageParams) => {
         if (this.contentViewRef?.current) {
             InsertImageCommand(this.contentViewRef.current, params.imageLocalPath, ContentSchema);
-            setTimeout(() => {
-                if (this.contentViewRef?.current) {
-                    FocusLastedNode(this.contentViewRef.current);
-                }
-            }, 200);
         }
     }
 
@@ -127,6 +122,30 @@ class NativeBridge {
         }
     }
 
+    private undoClick = (params: any, callback: Function) => {
+        const { getType } = UseTypeChecker()
+        let view = this.contentViewRef?.current;
+        if (!view) {
+            console.error('undoClick: contentViewRef is not set');
+            return;
+        }
+        if (getType(callback) === 'function') {
+            callback(UndoCommand(view));
+        }
+    }
+
+    private redoClick = (params: any, callback: Function) => {
+        const { getType } = UseTypeChecker()
+        let view = this.contentViewRef?.current;
+        if (!view) {
+            console.error('redoClick: contentViewRef is not set');
+            return;
+        }
+        if (getType(callback) === 'function') {
+            callback(RedoCommand(view));
+        }
+    }
+
     /**
      * 同步编辑器区域点击/状态信息
      * @param type 区域类型，如 'title' | 'content' | 'image' | 'textarea'
@@ -148,6 +167,8 @@ class NativeBridge {
         this.nativeBridge.registerAsync('resignFirstResponse', this.resignFirstResponse);
         this.nativeBridge.registerAsync('hasFocused', this.hasFocused);
         this.nativeBridge.registerAsync('settingFont', this.settingFont);
+        this.nativeBridge.registerAsync('undoClick', this.undoClick);
+        this.nativeBridge.registerAsync('redoClick', this.redoClick);
     }
 
 }

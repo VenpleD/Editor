@@ -6,7 +6,7 @@ import { EditorState } from "prosemirror-state";
 interface FindNodeResult {
   node: Node | null;
   pos: ResolvedPos | null;
-  posIndex: number;
+  posIndex: number; // 节点前的位置所以|<p></p>
 }
 
 class Utils {
@@ -44,6 +44,26 @@ class Utils {
         resultNode = node;
         resultPosIndex = pos;
         resultPos = tempResolvePos;
+      }
+    });
+    return { node: resultNode, pos: resultPos, posIndex: resultPosIndex };
+  }
+  static findNextNode(state: EditorState, currentNode: Node): FindNodeResult {
+    let resultNode: Node | null = null;
+    let resultPos: ResolvedPos | null = null;
+    let resultPosIndex: number = -1;
+    let needNext = false;
+    state.doc.descendants((node: Node, pos: number) => {
+      let tempResolvePos = state.doc.resolve(pos);
+      if (node === currentNode) {
+        needNext = true;
+        return; // 找到当前节点后，继续查找下一个节点
+      }
+      if (needNext) {
+        resultNode = node;
+        resultPosIndex = pos;
+        resultPos = tempResolvePos;
+        needNext = false; // 只获取下一个节点
       }
     });
     return { node: resultNode, pos: resultPos, posIndex: resultPosIndex };
