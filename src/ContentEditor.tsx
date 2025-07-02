@@ -14,6 +14,7 @@ import ImagePlugin from './ImagePlugin.ts';
 import { ImageContainerView } from './ContentSchema.ts';
 import TransactionCallbackManager from './TransactionCallbackManager.ts';
 import AppManager from './AppManager.ts';
+import { GolobalConstants } from './Global.ts';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
@@ -42,9 +43,9 @@ const ContentEditor = () => {
             },
             handleClick(view, pos, event) {
               const target = event.target as HTMLElement;
-              if (target.classList.contains('imageContainerTextarea')) {
+              if (target.classList.contains(GolobalConstants.imageContainerTextareaCls)) {
                 NativeBridge.getInstance().asyncCurrentTarget('textarea', { a: "1" });
-              } else if (target.closest('.imageContainer')) {
+              } else if (target.closest(GolobalConstants.imageContainerCls)) {
                 NativeBridge.getInstance().asyncCurrentTarget('image');
               } else {
                 NativeBridge.getInstance().asyncCurrentTarget('content');
@@ -70,9 +71,12 @@ const ContentEditor = () => {
         /// DOM渲染2次之后，执行callBack操作
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            TransactionCallbackManager.runAll(newState, view);
+            requestAnimationFrame(() => {
+              TransactionCallbackManager.runAll(newState, view);
+            });
           });
         });
+
       },
       attributes: {
         id: 'editor-view-id' // 设置 EditorView 的 id

@@ -187,6 +187,11 @@ class NativeBridge {
         });
     }
 
+    public pushDetailPage(content: string) {
+        if (!this.nativeBridge) return;
+        this.nativeBridge.call('pushWebVC', { content }, null);
+    }
+
     private commonFunc() {
         this.nativeBridge.registerSync('insertLocalImage', this.insertImage);
         this.nativeBridge.registerAsync('becomeFirstResponse', this.becomeFirstResponse);

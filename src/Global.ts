@@ -77,7 +77,7 @@ export const GolobalConstants = {
   imageContainerCls: 'imageContainer',
   imageContainerTextareaCls: 'imageContainerTextarea',  
   imageContainerTextareaPlaceholder: '请输入内容',
-  imageContainerImgCls: 'imageContainerImg',
+  imageContainerImgCls: 'customImage',
 }
 
 export default GlobalStyle;

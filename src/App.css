@@ -116,7 +116,7 @@ html {
   font-size: var(--content-font-size);
 }
 
-.contentWrapper .custom-image-class {
+.contentWrapper .customImage {
   width: 100%;
   height: auto;
   vertical-align: bottom;

@@ -132,6 +132,7 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
         value: '',
         placeholder: GolobalConstants.imageContainerTextareaPlaceholder,
         cls: GolobalConstants.imageContainerTextareaCls,
+        imgCls: GolobalConstants.imageContainerImgCls,
         upload_id: imageUploadId
     });
     if (!isEmptyParagraph) {

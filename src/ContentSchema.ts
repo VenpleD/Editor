@@ -102,6 +102,7 @@ const imageContainerNode = {
     value: { default: '' },
     placeholder: { default: '' },
     cls: { default: '' },
+    imgCls: { default: GolobalConstants.imageContainerImgCls },
     upload_id: { default: '' }
   },
   parseDOM: [{
@@ -114,7 +115,8 @@ const imageContainerNode = {
         value: textarea ? textarea.value : '',
         placeholder: textarea ? textarea.getAttribute('placeholder') : '',
         cls: textarea ? textarea.getAttribute('class') : '',
-        upload_id: img ? img.getAttribute('upload_id') || '' : ''
+        upload_id: img ? img.getAttribute('upload_id') || '' : '',
+        imgCls: img ? img.getAttribute('class') || '' : ''
       };
     }
   }],
@@ -125,7 +127,8 @@ const imageContainerNode = {
       ['img', { 
         src: node.attrs.src,
         upload_id: node.attrs.upload_id,
-       }],
+        class: node.attrs.imgCls
+      }],
       ['textarea', {
         value: node.attrs.value,
         placeholder: node.attrs.placeholder,
@@ -161,7 +164,7 @@ export class ImageContainerView implements NodeView {
     // 创建 img
     const img = document.createElement('img');
     img.src = node.attrs.src || '';
-    img.className = node.attrs.cls || GolobalConstants.imageContainerImgCls;
+    img.className = node.attrs.imgCls || GolobalConstants.imageContainerImgCls;
     img.setAttribute('upload_id', node.attrs.upload_id || '');
     img.setAttribute('referrerpolicy', 'no-referrer'); // 避免跨域问题
     this.dom.appendChild(img);
