@@ -3,6 +3,7 @@ import { InsertImageCommand, UndoCommand, FontCommand, RedoCommand } from "./Com
 import ContentSchema from "./ContentSchema.ts";
 import UseTypeChecker from "./Object.js";
 import GlobalStyle from "./Global.ts";
+import AppManager from "./AppManager.ts";
 
 export interface DDBridge {
     call(funcName: string, params: object, callback: Function | null): any;
@@ -146,6 +147,17 @@ class NativeBridge {
         }
     }
 
+    private nextStep = (params: any, callback: Function) => {
+        const { getType } = UseTypeChecker()
+        let contentView = this.contentViewRef?.current;
+        let titleView = this.titleViewRef?.current;
+        if (!contentView || !titleView) {
+            console.error('nextStep: contentViewRef or titleViewRef is not set');
+            return;
+        }
+        AppManager.handleNextStep();
+    }
+
     /**
      * 同步编辑器区域点击/状态信息
      * @param type 区域类型，如 'title' | 'content' | 'image' | 'textarea'
@@ -161,6 +173,20 @@ class NativeBridge {
         this.nativeBridge.call('jsSetToolBar', { 'hide': type !== 'content' }, null);
     }
 
+    public async getTOSConfigAsync(): Promise<any> {
+        if (!this.nativeBridge) return null;
+        return new Promise((resolve) => {
+            this.nativeBridge.call('getTOSConfig', {}, (result: any) => {
+                if (result && result.code === 0) {
+                    resolve(result.data);
+                } else {
+                    console.error('getTOSConfig failed:', result);
+                    resolve(null);
+                }
+            });
+        });
+    }
+
     private commonFunc() {
         this.nativeBridge.registerSync('insertLocalImage', this.insertImage);
         this.nativeBridge.registerAsync('becomeFirstResponse', this.becomeFirstResponse);
@@ -169,6 +195,7 @@ class NativeBridge {
         this.nativeBridge.registerAsync('settingFont', this.settingFont);
         this.nativeBridge.registerAsync('undoClick', this.undoClick);
         this.nativeBridge.registerAsync('redoClick', this.redoClick);
+        this.nativeBridge.registerAsync('nextStep', this.nextStep);
     }
 
 }

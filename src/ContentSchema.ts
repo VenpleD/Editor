@@ -3,6 +3,7 @@ import { schema as basicSchema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
 import { NodeView } from 'prosemirror-view';
 import NativeBridge from './NativeBridge.ts';
+import { GolobalConstants } from './Global.ts';
 
 // 1. 定义所有 marks
 const underlineMark = {
@@ -120,7 +121,7 @@ const imageContainerNode = {
   toDOM(node) {
     return [
       'div',
-      { class: 'imageContainer' },
+      { class: GolobalConstants.imageContainerCls },
       ['img', { 
         src: node.attrs.src,
         upload_id: node.attrs.upload_id,
@@ -154,14 +155,15 @@ export class ImageContainerView implements NodeView {
   constructor(node, view, getPos) {
     // 创建外层 div
     this.dom = document.createElement('div');
-    this.dom.className = 'imageContainer';
+    this.dom.className = GolobalConstants.imageContainerCls;
     this.dom.contentEditable = "false"; // 关键！
 
     // 创建 img
     const img = document.createElement('img');
     img.src = node.attrs.src || '';
-    img.className = node.attrs.cls || 'custom-image-class';
+    img.className = node.attrs.cls || GolobalConstants.imageContainerImgCls;
     img.setAttribute('upload_id', node.attrs.upload_id || '');
+    img.setAttribute('referrerpolicy', 'no-referrer'); // 避免跨域问题
     this.dom.appendChild(img);
 
     // 创建 textarea

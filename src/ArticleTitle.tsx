@@ -9,6 +9,7 @@ import { history, undo, redo } from 'prosemirror-history';
 import { baseKeymap } from 'prosemirror-commands';
 import placeholder from './Placeholder/placeholder.js';
 import NativeBridge from './NativeBridge.ts';
+import AppManager from './AppManager.ts';
 
 // 扩展基本的schema以包含列表相关节点
 // const mySchema = new Schema({
@@ -29,7 +30,9 @@ const mySchema = new Schema({
 
 const ArticleTitle = () => {
     const editorRef = useRef(null);
+    const viewRef = useRef<EditorView | null>(null)
     NativeBridge.getInstance().setTitleViewRef(editorRef);
+    AppManager.titleViewRef = viewRef;
 
     const [showPrompt, setShowPrompt] = useState(false); // 用于控制提示框是否显示
     const [promptText, setPromptText] = useState(''); // 用于存储提示框的文本内容
@@ -86,7 +89,7 @@ const ArticleTitle = () => {
                 }
             }
         });
-
+        viewRef.current = view;
         return () => {
             view.destroy();
         };

@@ -13,11 +13,13 @@ import CreateCursorInfoPlugin from './CursorInfoPlugin.ts';
 import ImagePlugin from './ImagePlugin.ts';
 import { ImageContainerView } from './ContentSchema.ts';
 import TransactionCallbackManager from './TransactionCallbackManager.ts';
+import AppManager from './AppManager.ts';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
   const viewRef = useRef<EditorView | null>(null)
   NativeBridge.getInstance().setContentViewRef(viewRef);
+  AppManager.contentViewRef = viewRef;
   // var prosemirrorState = require('prosemirror-state');
 
   var backspaceKey = new PluginKey("'backspace'");

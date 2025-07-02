@@ -5,7 +5,7 @@ import { EditorState, NodeSelection, Selection, TextSelection, Transaction } fro
 import { EditorView } from "prosemirror-view";
 import ContentSchema from "./ContentSchema.ts";
 import { toggleMark, setBlockType } from "prosemirror-commands";
-import GlobalStyle from "./Global.ts";
+import GlobalStyle, { GolobalConstants } from "./Global.ts";
 import TransactionCallbackManager from './TransactionCallbackManager.ts';
 import { redo, undo } from "prosemirror-history";
 
@@ -130,8 +130,8 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
     const imageContainerNode = currentSchema.nodes.imageContainer.create({
         src: imageUrl,
         value: '',
-        placeholder: '请输入内容',
-        cls: 'imageContainerTextarea',
+        placeholder: GolobalConstants.imageContainerTextareaPlaceholder,
+        cls: GolobalConstants.imageContainerTextareaCls,
         upload_id: imageUploadId
     });
     if (!isEmptyParagraph) {
