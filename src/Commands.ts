@@ -56,7 +56,7 @@ export const FontCommand: FontFunction = {
     textColor: (view: EditorView, color: string) => {
         const markType = ContentSchema.marks.textColor;
         if (markType) {
-            toggleMark(markType, { color })(view.state, view.dispatch, view);
+            setMark(markType, { color })(view.state, view.dispatch);
             return true;
         }
         return false;
@@ -64,7 +64,7 @@ export const FontCommand: FontFunction = {
     bgColor: (view: EditorView, bgColor: string) => {
         const markType = ContentSchema.marks.bgColor || ContentSchema.marks.backgroundColor;
         if (markType) {
-            toggleMark(markType, { bgColor })(view.state, view.dispatch, view);
+            setMark(markType, { bgColor })(view.state, view.dispatch);
             return true;
         }
         return false;
@@ -81,6 +81,41 @@ export const FontCommand: FontFunction = {
         const paragraph = schema.nodes.paragraph;
         if (!paragraph) return false;
         setBlockType(paragraph, { align })(state, dispatch);
+        return true;
+    }
+};
+
+export const PgcCommand = {
+    settingH1: (view: EditorView, className: string) => {
+        const { state, dispatch } = view;
+        const { schema, selection } = state;
+        const h1 = schema.nodes.heading;
+        if (!h1) return false;
+
+        let { from, to, empty } = selection;
+
+        // 如果没有选区，自动扩展为当前段落
+        if (empty) {
+            const $from = state.selection.$from;
+            from = $from.start();
+            to = $from.end();
+        }
+
+        // 1. 移除选区内所有 mark
+        let tr = state.tr;
+        schema.marks && Object.values(schema.marks).forEach((mark) => {
+            tr = tr.removeMark(from, to, mark);
+        });
+
+        // 2. 设置 h1
+        tr = tr.setBlockType(from, to, h1, { level: 1, class: className });
+
+        // 3. 更新 styleIdMap
+        if (!(className in GlobalStyle.styleIdMap)) {
+            GlobalStyle.styleIdMap[className] = className;
+        }
+
+        dispatch(tr.scrollIntoView());
         return true;
     }
 };

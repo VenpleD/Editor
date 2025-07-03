@@ -1,5 +1,5 @@
 import { EditorView } from "prosemirror-view";
-import { InsertImageCommand, UndoCommand, FontCommand, RedoCommand } from "./Commands.ts";
+import { InsertImageCommand, UndoCommand, FontCommand, RedoCommand, PgcCommand } from "./Commands.ts";
 import ContentSchema from "./ContentSchema.ts";
 import UseTypeChecker from "./Object.js";
 import GlobalStyle from "./Global.ts";
@@ -123,6 +123,31 @@ class NativeBridge {
         }
     }
 
+    private settingPgc = (params: any, callback: Function) => {
+        const { getType, checkString } = UseTypeChecker()
+        let view = this.contentViewRef?.current
+        if (!view) {
+            console.error('settingPgc: contentViewRef is not set');
+            return;
+        }
+        let funcName = params.funcName;
+        let paramString = params.paramString;
+        console.log('settingPgc', funcName, paramString);
+        if (checkString(funcName).isEmpty || checkString(paramString).isEmpty) {
+            console.error('settingPgc: funcName or paramString is empty');
+            return;
+        }
+        let styleValue = GlobalStyle.styleAllMap[paramString];
+        if (checkString(styleValue).isEmpty) {
+            console.error('settingPgc: paramString is not a valid style value');
+            return;
+        }
+        let result = PgcCommand[funcName](view, styleValue);
+        if (callback && getType(callback) === 'function') {
+            callback(result);
+        }
+    }
+
     private undoClick = (params: any, callback: Function) => {
         const { getType } = UseTypeChecker()
         let view = this.contentViewRef?.current;
@@ -198,6 +223,7 @@ class NativeBridge {
         this.nativeBridge.registerAsync('resignFirstResponse', this.resignFirstResponse);
         this.nativeBridge.registerAsync('hasFocused', this.hasFocused);
         this.nativeBridge.registerAsync('settingFont', this.settingFont);
+        this.nativeBridge.registerAsync('settingPgc', this.settingPgc);
         this.nativeBridge.registerAsync('undoClick', this.undoClick);
         this.nativeBridge.registerAsync('redoClick', this.redoClick);
         this.nativeBridge.registerAsync('nextStep', this.nextStep);

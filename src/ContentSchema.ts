@@ -138,9 +138,37 @@ const imageContainerNode = {
   }
 };
 
+// 添加 heading 节点
+const headingNode = {
+  attrs: {
+    level: { default: 1 },
+    class: { default: '' }
+  },
+  content: "inline*",
+  group: "block",
+  defining: true,
+  parseDOM: [
+    {
+      tag: "h1,h2,h3,h4,h5,h6",
+      getAttrs: (node) => ({
+        level: Number((node as HTMLElement).nodeName[1]),
+        class: (node as HTMLElement).getAttribute('class') || ''
+      })
+    }
+  ],
+  toDOM(node) {
+    return [
+      "h" + node.attrs.level,
+      node.attrs.class ? { class: node.attrs.class } : {},
+      0
+    ] as const;
+  }
+};
+
 // 合并 nodes
 const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block')
   .update("paragraph", paragraphWithAlign)
+  .update("heading", headingNode)
   .append({
     imageContainer: imageContainerNode,
   });

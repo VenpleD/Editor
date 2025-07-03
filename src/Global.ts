@@ -1,3 +1,13 @@
+export const GlobalConstants = {
+  imageContainerCls: 'imageContainer',
+  imageContainerTextareaCls: 'imageContainerTextarea',  
+  imageContainerTextareaPlaceholder: '请输入内容',
+  imageContainerImgCls: 'customImage',
+  pgcH1ArrowRight: 'pgc-h1-arrow-right',
+  pgcH1CenterLine: 'pgc-h1-center-line',
+  pgcH1Decimal: 'pgc-h1-decimal',
+};
+
 const styleMap = {
   fontStyle: {
     bold: 'bold',
@@ -18,16 +28,24 @@ const styleMap = {
     justify: 'justify'
   },
   fontColor: {
+    black: '#000000',
+    gray: '#888888',
     red: '#ff4d4f',
     yellow: '#faad14',
     blue: '#1890ff',
     green: '#52c41a'
   },
   bgColor: {
-    red: '#4d2323',
-    yellow: '#4d3a23',
-    blue: '#23324d',
-    green: '#234d2d'
+    bClear: 'transparent',
+    bGray: '#4d2323',
+    bYellow: '#4ddd23', 
+    bBlue: '#23324d',
+    bGreen: '#234d2d'
+  },
+  h1Style: {
+    arrowRight: GlobalConstants.pgcH1ArrowRight,
+    centerLine: GlobalConstants.pgcH1CenterLine,
+    decimal: GlobalConstants.pgcH1Decimal
   }
 };
 
@@ -43,6 +61,7 @@ const styleAllMap = {
   ...styleMap.fontColor,  
   ...styleMap.bgColor,  
   ...styleMap.fontStyle,
+  ...styleMap.h1Style,
 };
 
 const styleIdMap = {
@@ -51,17 +70,12 @@ const styleIdMap = {
     ...Object.fromEntries(Object.entries(styleMap.fontColor).map(([k, v]) => [v, k])),
     ...Object.fromEntries(Object.entries(styleMap.bgColor).map(([k, v]) => [v, k])),
     ...Object.fromEntries(Object.entries(styleMap.fontStyle).map(([k, v]) => [v, k])),
+    ...Object.fromEntries(Object.entries(styleMap.h1Style).map(([k, v]) => [v, k])),
 }
 
 const GlobalStyle = {
   getHtmlWidth: () => Math.min(540, window.innerWidth),
   getFontSize: () => Math.ceil(Math.min(540, window.innerWidth) / 9),
-  setCssVars: () => {
-    const htmlWidth = GlobalStyle.getHtmlWidth();
-    const fontSize = GlobalStyle.getFontSize();
-    document.documentElement.style.setProperty('--html-width', htmlWidth + 'px');
-    document.documentElement.style.setProperty('--html-font-size', fontSize + 'px');
-  },
   convertToRem: (px: number) => {
     return Math.ceil(px * GlobalStyle.getFontSize() / 16) / 100;
   },
@@ -69,15 +83,15 @@ const GlobalStyle = {
     const remValue = parseFloat(rem);
     return String(Math.floor(remValue * 16 * 100 / GlobalStyle.getFontSize()));
   },
+  setCssVars: () => {
+    const htmlWidth = GlobalStyle.getHtmlWidth();
+    const fontSize = GlobalStyle.getFontSize();
+    document.documentElement.style.setProperty('--html-width', htmlWidth + 'px');
+    document.documentElement.style.setProperty('--html-font-size', fontSize + 'px');
+    document.documentElement.style.setProperty('--html-h1-font-size', GlobalStyle.convertToRem(32) + 'rem');
+  },
   styleIdMap,
   styleAllMap // 这里就是正反向都能查的map
 };
-
-export const GlobalConstants = {
-  imageContainerCls: 'imageContainer',
-  imageContainerTextareaCls: 'imageContainerTextarea',  
-  imageContainerTextareaPlaceholder: '请输入内容',
-  imageContainerImgCls: 'customImage',
-}
 
 export default GlobalStyle;
