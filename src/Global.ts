@@ -73,7 +73,7 @@ const GlobalStyle = {
   styleAllMap // 这里就是正反向都能查的map
 };
 
-export const GolobalConstants = {
+export const GlobalConstants = {
   imageContainerCls: 'imageContainer',
   imageContainerTextareaCls: 'imageContainerTextarea',  
   imageContainerTextareaPlaceholder: '请输入内容',

@@ -5,7 +5,7 @@ import { EditorState, NodeSelection, Selection, TextSelection, Transaction } fro
 import { EditorView } from "prosemirror-view";
 import ContentSchema from "./ContentSchema.ts";
 import { toggleMark, setBlockType } from "prosemirror-commands";
-import GlobalStyle, { GolobalConstants } from "./Global.ts";
+import GlobalStyle, { GlobalConstants } from "./Global.ts";
 import TransactionCallbackManager from './TransactionCallbackManager.ts';
 import { redo, undo } from "prosemirror-history";
 
@@ -130,9 +130,9 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
     const imageContainerNode = currentSchema.nodes.imageContainer.create({
         src: imageUrl,
         value: '',
-        placeholder: GolobalConstants.imageContainerTextareaPlaceholder,
-        cls: GolobalConstants.imageContainerTextareaCls,
-        imgCls: GolobalConstants.imageContainerImgCls,
+        placeholder: GlobalConstants.imageContainerTextareaPlaceholder,
+        cls: GlobalConstants.imageContainerTextareaCls,
+        imgCls: GlobalConstants.imageContainerImgCls,
         upload_id: imageUploadId
     });
     if (!isEmptyParagraph) {
@@ -154,6 +154,7 @@ export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSc
         replaceCurrentPara = true;
         leftPos -= 1;
     }
+    leftPos = Math.max(leftPos, 0);
     let fragment;
     if (needNextPara) {
         // 段落中间插入，且右侧没内容，插入空行

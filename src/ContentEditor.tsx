@@ -14,7 +14,8 @@ import ImagePlugin from './ImagePlugin.ts';
 import { ImageContainerView } from './ContentSchema.ts';
 import TransactionCallbackManager from './TransactionCallbackManager.ts';
 import AppManager from './AppManager.ts';
-import { GolobalConstants } from './Global.ts';
+import { GlobalConstants } from './Global.ts';
+import createPasteTransformPlugin from './PasteTransformPlugin.ts';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
@@ -43,9 +44,9 @@ const ContentEditor = () => {
             },
             handleClick(view, pos, event) {
               const target = event.target as HTMLElement;
-              if (target.classList.contains(GolobalConstants.imageContainerTextareaCls)) {
+              if (target.classList.contains(GlobalConstants.imageContainerTextareaCls)) {
                 NativeBridge.getInstance().asyncCurrentTarget('textarea', { a: "1" });
-              } else if (target.closest(GolobalConstants.imageContainerCls)) {
+              } else if (target.closest(GlobalConstants.imageContainerCls)) {
                 NativeBridge.getInstance().asyncCurrentTarget('image');
               } else {
                 NativeBridge.getInstance().asyncCurrentTarget('content');
@@ -54,7 +55,8 @@ const ContentEditor = () => {
               return false;
             }
           }
-        })
+        }),
+        createPasteTransformPlugin(),
       ]
     });
     // 创建编辑器视图并挂载到DOM元素上

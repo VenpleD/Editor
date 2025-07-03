@@ -3,7 +3,7 @@ import { schema as basicSchema } from 'prosemirror-schema-basic';
 import { addListNodes } from 'prosemirror-schema-list';
 import { NodeView } from 'prosemirror-view';
 import NativeBridge from './NativeBridge.ts';
-import { GolobalConstants } from './Global.ts';
+import { GlobalConstants } from './Global.ts';
 
 // 1. 定义所有 marks
 const underlineMark = {
@@ -102,7 +102,7 @@ const imageContainerNode = {
     value: { default: '' },
     placeholder: { default: '' },
     cls: { default: '' },
-    imgCls: { default: GolobalConstants.imageContainerImgCls },
+    imgCls: { default: GlobalConstants.imageContainerImgCls },
     upload_id: { default: '' }
   },
   parseDOM: [{
@@ -123,7 +123,7 @@ const imageContainerNode = {
   toDOM(node) {
     return [
       'div',
-      { class: GolobalConstants.imageContainerCls },
+      { class: GlobalConstants.imageContainerCls },
       ['img', { 
         src: node.attrs.src,
         upload_id: node.attrs.upload_id,
@@ -145,8 +145,13 @@ const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block
     imageContainer: imageContainerNode,
   });
 
+// 关键：doc 节点的 content 要包含 imageContainer
+const nodesWithDoc = allNodes.update("doc", {
+  content: "(paragraph | imageContainer | heading | blockquote | ordered_list | bullet_list | code_block | horizontal_rule)*"
+});
+
 const ContentSchema = new Schema({
-  nodes: allNodes,
+  nodes: nodesWithDoc,
   marks: allMarks
 });
 
@@ -158,13 +163,13 @@ export class ImageContainerView implements NodeView {
   constructor(node, view, getPos) {
     // 创建外层 div
     this.dom = document.createElement('div');
-    this.dom.className = GolobalConstants.imageContainerCls;
+    this.dom.className = GlobalConstants.imageContainerCls;
     this.dom.contentEditable = "false"; // 关键！
 
     // 创建 img
     const img = document.createElement('img');
     img.src = node.attrs.src || '';
-    img.className = node.attrs.imgCls || GolobalConstants.imageContainerImgCls;
+    img.className = node.attrs.imgCls || GlobalConstants.imageContainerImgCls;
     img.setAttribute('upload_id', node.attrs.upload_id || '');
     img.setAttribute('referrerpolicy', 'no-referrer'); // 避免跨域问题
     this.dom.appendChild(img);

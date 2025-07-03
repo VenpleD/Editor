@@ -1,7 +1,7 @@
 import { EditorView } from "prosemirror-view";
 import { DOMSerializer, Node as ProseMirrorNode } from "prosemirror-model";
 import UploadManager from "./UploadSource/UploadManager.ts";
-import { GolobalConstants } from "./Global.ts";
+import { GlobalConstants } from "./Global.ts";
 import { EditorState } from "prosemirror-state";
 import NativeBridge from "./NativeBridge.ts";
 
@@ -94,7 +94,7 @@ class AppManager {
     private getAllImageContainerIdsAndSrcs(doc: ProseMirrorNode): Array<{ pos: number, upload_id: string, src: string }> {
         const imageContainers: Array<{ pos: number, upload_id: string, src: string }> = [];
         doc.descendants((node, pos) => {
-            if (node.type.name === GolobalConstants.imageContainerCls) {
+            if (node.type.name === GlobalConstants.imageContainerCls) {
                 const uploadId = node.attrs["upload_id"];
                 const src = node.attrs["src"];
                 if (uploadId && src) {
