@@ -4,10 +4,11 @@ import UseTypeChecker from "./Object.js";
 import { EditorState, NodeSelection, Selection, TextSelection, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import ContentSchema from "./ContentSchema.ts";
-import { toggleMark, setBlockType } from "prosemirror-commands";
+import { toggleMark, setBlockType, wrapIn, lift } from "prosemirror-commands";
 import GlobalStyle, { GlobalConstants } from "./Global.ts";
 import TransactionCallbackManager from './TransactionCallbackManager.ts';
 import { redo, undo } from "prosemirror-history";
+
 
 type FontFunction = {
     bold: (view: EditorView) => (Boolean);
@@ -87,36 +88,54 @@ export const FontCommand: FontFunction = {
 
 export const PgcCommand = {
     settingH1: (view: EditorView, className: string) => {
-        const { state, dispatch } = view;
+        let { state, dispatch } = view;
         const { schema, selection } = state;
         const h1 = schema.nodes.heading;
         if (!h1) return false;
 
         let { from, to, empty } = selection;
-
-        // 如果没有选区，自动扩展为当前段落
         if (empty) {
             const $from = state.selection.$from;
             from = $from.start();
             to = $from.end();
         }
 
-        // 1. 移除选区内所有 mark
-        let tr = state.tr;
-        schema.marks && Object.values(schema.marks).forEach((mark) => {
-            tr = tr.removeMark(from, to, mark);
-        });
+        // 1. 先移除所有 mark
+        let tr = removeAllMarks(state.tr, schema, from, to);
+        dispatch(tr);
 
-        // 2. 设置 h1
-        tr = tr.setBlockType(from, to, h1, { level: 1, class: className });
+        // 2. 如果在 blockquote 内，先提升
+        downgradeToParagraph(view);
 
-        // 3. 更新 styleIdMap
-        if (!(className in GlobalStyle.styleIdMap)) {
-            GlobalStyle.styleIdMap[className] = className;
+
+        // 3. setBlockType 为 h1（用最新的 view.state）
+        setBlockType(h1, { level: 1, class: className })(view.state, dispatch);
+        return true;
+    },
+
+    setBlockquote: (view: EditorView, className: string) => {
+        let { state, dispatch } = view;
+        const { schema, selection } = state;
+        const blockquote = schema.nodes.blockquote;
+        if (!blockquote) return false;
+
+        let { from, to, empty } = selection;
+        if (empty) {
+            const $from = state.selection.$from;
+            from = $from.start();
+            to = $from.end();
         }
 
-        dispatch(tr.scrollIntoView());
-        return true;
+        // 1. 先移除所有 mark
+        let tr = removeAllMarks(state.tr, schema, from, to);
+        dispatch(tr);
+
+        // 2. 如果在 blockquote 内，先提升
+        // setParagraph(view, from, to);
+        downgradeToParagraph(view);
+
+        // 3. wrapIn blockquote
+        return wrapIn(blockquote, { class: className })(view.state, view.dispatch);
     }
 };
 
@@ -245,4 +264,108 @@ function setMark(markType: MarkType, attrs: any) {
         if (dispatch) dispatch(tr.scrollIntoView());
         return true;
     }
+}
+
+function clearBlockAndMarks(
+    state: EditorState,
+    dispatch: (tr: Transaction) => void,
+    from: number,
+    to: number
+): EditorState {
+    let tr = state.tr;
+    // 移除所有 mark
+    if (state.schema.marks) {
+        Object.values(state.schema.marks).forEach((mark) => {
+            tr = tr.removeMark(from, to, mark);
+        });
+    }
+    // 先 setBlockType 为 paragraph
+    if (state.schema.nodes.paragraph) {
+        tr = tr.setBlockType(from, to, state.schema.nodes.paragraph);
+    }
+    // 提升 blockquote（如果在 blockquote 内部）
+    let $from = tr.doc.resolve(from);
+    for (let depth = $from.depth; depth > 0; depth--) {
+        if ($from.node(depth).type === state.schema.nodes.blockquote) {
+            let blockquotePos = $from.before(depth);
+            let blockquoteNode = $from.node(depth);
+            let blockquoteEnd = blockquotePos + blockquoteNode.nodeSize;
+            // 选区必须覆盖整个 blockquote
+            if (from <= blockquotePos + 1 && to >= blockquoteEnd - 1) {
+                let sel = TextSelection.create(tr.doc, blockquotePos + 1, blockquoteEnd - 1);
+                tr = tr.setSelection(sel);
+                let newState = state.apply(tr);
+                lift(newState, dispatch);
+                // 返回最新 state
+                return newState;
+            }
+            break;
+        }
+    }
+    // 如果没有提升，直接 dispatch
+    dispatch(tr);
+    return state.apply(tr);
+}
+
+function setParagraph(view: EditorView, from: number, to: number): void {
+    const { state, dispatch } = view;
+    const { schema } = state;
+    let $from = state.doc.resolve(from);
+    for (let depth = $from.depth; depth > 0; depth--) {
+        if ($from.node(depth).type === schema.nodes.blockquote || $from.node(depth).type === schema.nodes.heading) {
+            let paragraphPos = $from.before(depth);
+            let paragraphNode = $from.node(depth);
+            let paragraphEnd = paragraphPos + paragraphNode.nodeSize;
+            let sel = TextSelection.create(state.doc, paragraphPos + 1, paragraphEnd - 1);
+            let tr = state.tr.setSelection(sel);
+            dispatch(tr); // 先设置 selection
+            lift(view.state, dispatch); // 再提升
+            return;
+        }
+    }
+}
+
+function downgradeToParagraph(view: EditorView) {
+    const { state, dispatch } = view;
+    const { schema, selection } = state;
+    let { from, to, empty } = selection;
+    if (empty) {
+        const $from = state.selection.$from;
+        from = $from.start();
+        to = $from.end();
+    }
+    const $from = state.doc.resolve(from);
+    // 判断当前节点类型
+    const parentNode = $from.parent;
+    if (parentNode.type === schema.nodes.heading) {
+        // h1/h2... 变成 p
+        setBlockType(schema.nodes.paragraph)(state, dispatch);
+    } 
+    
+    // 2. 判断是否在 blockquote 内（向上遍历父节点）
+    for (let depth = $from.depth; depth > 0; depth--) {
+        if ($from.node(depth).type === schema.nodes.blockquote) {
+            // 先提升 blockquote
+            let blockquotePos = $from.before(depth);
+            let blockquoteNode = $from.node(depth);
+            let blockquoteEnd = blockquotePos + blockquoteNode.nodeSize;
+            let sel = TextSelection.create(state.doc, blockquotePos + 1, blockquoteEnd - 1);
+            let tr = state.tr.setSelection(sel);
+            dispatch(tr); // 设置选区
+            lift(view.state, dispatch); // 提升 blockquote
+            // 再把内容变成段落
+            setBlockType(schema.nodes.paragraph)(view.state, dispatch);
+            return;
+        }
+    }
+    // 如果已经是 p，不处理
+}
+
+function removeAllMarks(tr: Transaction, schema: Schema, from: number, to: number): Transaction {
+    if (schema.marks) {
+        Object.values(schema.marks).forEach((mark) => {
+            tr = tr.removeMark(from, to, mark);
+        });
+    }
+    return tr;
 }

@@ -6,6 +6,9 @@ export const GlobalConstants = {
   pgcH1ArrowRight: 'pgc-h1-arrow-right',
   pgcH1CenterLine: 'pgc-h1-center-line',
   pgcH1Decimal: 'pgc-h1-decimal',
+  quoteBgCls: 'quote-bg',
+  quoteBarCls: 'quote-bar',
+  quoteImageCls: 'quote-image',
 };
 
 const styleMap = {
@@ -46,7 +49,12 @@ const styleMap = {
     arrowRight: GlobalConstants.pgcH1ArrowRight,
     centerLine: GlobalConstants.pgcH1CenterLine,
     decimal: GlobalConstants.pgcH1Decimal
-  }
+  },
+  blockquoteStyle: {
+    quoteBg: GlobalConstants.quoteBgCls,
+    quoteBar: GlobalConstants.quoteBarCls,
+    quoteImage: GlobalConstants.quoteImageCls
+  },
 };
 
 // 反向映射生成函数
@@ -62,6 +70,7 @@ const styleAllMap = {
   ...styleMap.bgColor,  
   ...styleMap.fontStyle,
   ...styleMap.h1Style,
+  ...styleMap.blockquoteStyle,
 };
 
 const styleIdMap = {
@@ -71,6 +80,7 @@ const styleIdMap = {
     ...Object.fromEntries(Object.entries(styleMap.bgColor).map(([k, v]) => [v, k])),
     ...Object.fromEntries(Object.entries(styleMap.fontStyle).map(([k, v]) => [v, k])),
     ...Object.fromEntries(Object.entries(styleMap.h1Style).map(([k, v]) => [v, k])),
+    ...Object.fromEntries(Object.entries(styleMap.blockquoteStyle).map(([k, v]) => [v, k])),
 }
 
 const GlobalStyle = {

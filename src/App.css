@@ -242,3 +242,58 @@ html {
 }
 
 .titleWrapper {}
+
+/* 1. 灰色背景引用 */
+.contentWrapper blockquote.quote-bg {
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 16px 16px 16px 16px;
+  color: #555;
+  position: relative;
+}
+
+/* 2. 左侧竖杠引用 */
+.contentWrapper blockquote.quote-bar {
+  background: #f7f7f7;
+  border-radius: 8px;
+  padding: 16px 16px 16px 32px;
+  margin: 16px 0;
+  color: #555;
+  position: relative;
+}
+.contentWrapper blockquote.quote-bar::before {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 12px;
+  top: 16px;
+  bottom: 16px;
+  width: 4px;
+  border-radius: 2px;
+  background: #ff5d5d;
+}
+
+/* 3. 大双引号引用 */
+.contentWrapper blockquote.quote-image {
+  border-radius: 8px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;  
+  position: relative;
+}
+.contentWrapper blockquote.quote-image::before {
+  content: "";
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  background-size: 50px 50px;
+  z-index: -100;
+  margin-right: 8px;
+  /* background: #d8d8d8; */
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTguNDA0IDRjLjIzNy4zMi44MDggMS4wMzQgMS43MTMgMi4xNDItMi4wMDggMS45ODItMy4wNDkgMy45MzYtMy4xMjMgNS44NjVIMTFWMjBIM3YtNy45OTNsLjAwNy0uMDAxLjAyNC0uMjQ0QzMuMzc5IDguNjUyIDUuMTcgNi4wNjUgOC40MDQgNHptMTAgMGMuMjM3LjMyLjgwOCAxLjAzNCAxLjcxMyAyLjE0Mi0yLjAwOCAxLjk4Mi0zLjA0OSAzLjkzNi0zLjEyMyA1Ljg2NUgyMVYyMGgtOHYtNy44NjhhNy4wMzcgNy4wMzcgMCAwMS0uMDA4LS4wMWwuMDA4LS4wODV2LS4wM2wuMDAzLS4wMDEuMDItLjIxYy4zNTMtMy4xMzMgMi4xNDctNS43MzEgNS4zOC03Ljc5NnoiIGZpbGw9IiNGMkYyRjIiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg==');
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  position: absolute;
+  left: 0;
+  margin-top: -30px;
+}

@@ -165,12 +165,31 @@ const headingNode = {
   }
 };
 
+// blockquote 节点
+const blockquoteNode = {
+  attrs: { class: { default: '' } },
+  content: "block+",
+  group: "block",
+  parseDOM: [
+    {
+      tag: "blockquote",
+      getAttrs: node => ({
+        class: (node as HTMLElement).getAttribute('class') || ''
+      })
+    }
+  ],
+  toDOM(node) {
+    return ["blockquote", node.attrs.class ? { class: node.attrs.class } : {}, 0] as const;
+  }
+};
+
 // 合并 nodes
 const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block')
   .update("paragraph", paragraphWithAlign)
   .update("heading", headingNode)
   .append({
     imageContainer: imageContainerNode,
+    blockquote: blockquoteNode,
   });
 
 // 关键：doc 节点的 content 要包含 imageContainer
