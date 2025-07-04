@@ -8,6 +8,7 @@ import { toggleMark, setBlockType, wrapIn, lift } from "prosemirror-commands";
 import GlobalStyle, { GlobalConstants } from "./Global.ts";
 import TransactionCallbackManager from './TransactionCallbackManager.ts';
 import { redo, undo } from "prosemirror-history";
+import { liftListItem, wrapInList } from "prosemirror-schema-list";
 
 
 type FontFunction = {
@@ -136,7 +137,55 @@ export const PgcCommand = {
 
         // 3. wrapIn blockquote
         return wrapIn(blockquote, { class: className })(view.state, view.dispatch);
-    }
+    },
+
+    setBulletList: (view: EditorView) => {
+        const { state, dispatch } = view;
+        const { schema, selection } = state;
+        const bulletList = schema.nodes.bullet_list;
+        if (!bulletList) return false;
+
+        let { from, to, empty } = selection;
+        if (empty) {
+            const $from = state.selection.$from;
+            from = $from.start();
+            to = $from.end();
+        }
+
+        // 1. 先移除所有 mark
+        let tr = removeAllMarks(state.tr, schema, from, to);
+        dispatch(tr);
+
+        // 先移除 blockquote/heading 等
+        downgradeToParagraph(view);
+
+        // 包裹为无序列表，带 class
+        return wrapInList(bulletList, { class: GlobalConstants.bulletListCls })(view.state, dispatch);
+    },
+
+    setOrderedList: (view: EditorView) => {
+        const { state, dispatch } = view;
+        const { schema, selection } = state;
+        const orderedList = schema.nodes.ordered_list;
+        if (!orderedList) return false;
+
+        let { from, to, empty } = selection;
+        if (empty) {
+            const $from = state.selection.$from;
+            from = $from.start();
+            to = $from.end();
+        }
+
+        // 1. 先移除所有 mark
+        let tr = removeAllMarks(state.tr, schema, from, to);
+        dispatch(tr);
+
+        // 先移除 blockquote/heading 等
+        downgradeToParagraph(view);
+
+        // 包裹为有序列表，带 class
+        return wrapInList(orderedList, { class: GlobalConstants.orderedListCls })(view.state, dispatch);
+    },
 };
 
 export const FocusImageNextNode = (view: EditorView, node: ProseMirrorNode) => {
@@ -266,47 +315,6 @@ function setMark(markType: MarkType, attrs: any) {
     }
 }
 
-function clearBlockAndMarks(
-    state: EditorState,
-    dispatch: (tr: Transaction) => void,
-    from: number,
-    to: number
-): EditorState {
-    let tr = state.tr;
-    // 移除所有 mark
-    if (state.schema.marks) {
-        Object.values(state.schema.marks).forEach((mark) => {
-            tr = tr.removeMark(from, to, mark);
-        });
-    }
-    // 先 setBlockType 为 paragraph
-    if (state.schema.nodes.paragraph) {
-        tr = tr.setBlockType(from, to, state.schema.nodes.paragraph);
-    }
-    // 提升 blockquote（如果在 blockquote 内部）
-    let $from = tr.doc.resolve(from);
-    for (let depth = $from.depth; depth > 0; depth--) {
-        if ($from.node(depth).type === state.schema.nodes.blockquote) {
-            let blockquotePos = $from.before(depth);
-            let blockquoteNode = $from.node(depth);
-            let blockquoteEnd = blockquotePos + blockquoteNode.nodeSize;
-            // 选区必须覆盖整个 blockquote
-            if (from <= blockquotePos + 1 && to >= blockquoteEnd - 1) {
-                let sel = TextSelection.create(tr.doc, blockquotePos + 1, blockquoteEnd - 1);
-                tr = tr.setSelection(sel);
-                let newState = state.apply(tr);
-                lift(newState, dispatch);
-                // 返回最新 state
-                return newState;
-            }
-            break;
-        }
-    }
-    // 如果没有提升，直接 dispatch
-    dispatch(tr);
-    return state.apply(tr);
-}
-
 function setParagraph(view: EditorView, from: number, to: number): void {
     const { state, dispatch } = view;
     const { schema } = state;
@@ -328,36 +336,42 @@ function setParagraph(view: EditorView, from: number, to: number): void {
 function downgradeToParagraph(view: EditorView) {
     const { state, dispatch } = view;
     const { schema, selection } = state;
-    let { from, to, empty } = selection;
+    let { from, empty } = selection;
     if (empty) {
         const $from = state.selection.$from;
         from = $from.start();
-        to = $from.end();
     }
-    const $from = state.doc.resolve(from);
-    // 判断当前节点类型
-    const parentNode = $from.parent;
-    if (parentNode.type === schema.nodes.heading) {
-        // h1/h2... 变成 p
+    let $from = state.doc.resolve(from);
+
+    // 1. 如果是 heading，直接变成段落
+    if ($from.parent.type === schema.nodes.heading) {
         setBlockType(schema.nodes.paragraph)(state, dispatch);
-    } 
-    
-    // 2. 判断是否在 blockquote 内（向上遍历父节点）
+        return;
+    }
+
+    // 2. 向上查找最近的 bullet_list 或 ordered_list，提升
     for (let depth = $from.depth; depth > 0; depth--) {
-        if ($from.node(depth).type === schema.nodes.blockquote) {
-            // 先提升 blockquote
-            let blockquotePos = $from.before(depth);
-            let blockquoteNode = $from.node(depth);
-            let blockquoteEnd = blockquotePos + blockquoteNode.nodeSize;
-            let sel = TextSelection.create(state.doc, blockquotePos + 1, blockquoteEnd - 1);
+        const nodeType = $from.node(depth).type;
+        if (
+            nodeType === schema.nodes.bullet_list ||
+            nodeType === schema.nodes.ordered_list ||
+            nodeType === schema.nodes.list_item ||
+            nodeType === schema.nodes.blockquote
+        ) {
+            // 选区覆盖整个列表
+            let listPos = $from.before(depth);
+            let listNode = $from.node(depth);
+            let listEnd = listPos + listNode.nodeSize;
+            let sel = TextSelection.create(state.doc, listPos + 1, listEnd - 1);
             let tr = state.tr.setSelection(sel);
             dispatch(tr); // 设置选区
-            lift(view.state, dispatch); // 提升 blockquote
-            // 再把内容变成段落
+            lift(view.state, dispatch); // 提升列表
+            // 提升后再变成段落
             setBlockType(schema.nodes.paragraph)(view.state, dispatch);
             return;
         }
     }
+
     // 如果已经是 p，不处理
 }
 

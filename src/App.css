@@ -297,3 +297,32 @@ html {
   left: 0;
   margin-top: -30px;
 }
+
+/* 无序列表样式（点） */
+.contentWrapper ul.pgc-bullet-list {
+  list-style-type: disc;
+  padding-left: 1rem;
+  margin: 16px 0;
+}
+.contentWrapper ul.pgc-bullet-list li {
+  position: relative;
+  font-size: var(--content-font-size);
+  margin-bottom: 8px;
+}
+
+.contentWrapper ol.pgc-ordered-list {
+  list-style: decimal;
+  margin: 16px 0;
+  padding-left: 1rem;
+}
+
+.contentWrapper ol.pgc-ordered-list li {
+  font-size: var(--content-font-size);
+  margin-bottom: 8px;
+}
+
+.contentWrapper ol.pgc-ordered-list li::marker {
+  color: #ff5d5d;
+  font-weight: bold;
+  font-size: 1em;
+}

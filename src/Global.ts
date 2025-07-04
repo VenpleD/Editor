@@ -9,6 +9,8 @@ export const GlobalConstants = {
   quoteBgCls: 'quote-bg',
   quoteBarCls: 'quote-bar',
   quoteImageCls: 'quote-image',
+  bulletListCls: 'pgc-bullet-list',
+  orderedListCls: 'pgc-ordered-list',
 };
 
 const styleMap = {
@@ -55,6 +57,10 @@ const styleMap = {
     quoteBar: GlobalConstants.quoteBarCls,
     quoteImage: GlobalConstants.quoteImageCls
   },
+  listStyle: {
+    bullet: GlobalConstants.bulletListCls,
+    ordered: GlobalConstants.orderedListCls,
+  },
 };
 
 // 反向映射生成函数
@@ -71,6 +77,7 @@ const styleAllMap = {
   ...styleMap.fontStyle,
   ...styleMap.h1Style,
   ...styleMap.blockquoteStyle,
+  ...styleMap.listStyle,
 };
 
 const styleIdMap = {
@@ -81,6 +88,7 @@ const styleIdMap = {
     ...Object.fromEntries(Object.entries(styleMap.fontStyle).map(([k, v]) => [v, k])),
     ...Object.fromEntries(Object.entries(styleMap.h1Style).map(([k, v]) => [v, k])),
     ...Object.fromEntries(Object.entries(styleMap.blockquoteStyle).map(([k, v]) => [v, k])),
+    ...Object.entries(styleMap.listStyle).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {}),
 }
 
 const GlobalStyle = {

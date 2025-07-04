@@ -16,6 +16,7 @@ import TransactionCallbackManager from './TransactionCallbackManager.ts';
 import AppManager from './AppManager.ts';
 import { GlobalConstants } from './Global.ts';
 import createPasteTransformPlugin from './PasteTransformPlugin.ts';
+import { splitListItem } from 'prosemirror-schema-list';
 
 const ContentEditor = () => {
   const editorRef = useRef(null);
@@ -31,6 +32,9 @@ const ContentEditor = () => {
       plugins: [
         ImagePlugin,
         history(),
+        keymap({
+          "Enter": splitListItem(ContentSchema.nodes.list_item)
+        }),
         keymap(baseKeymap),  // 添加基础的键盘快捷键，如回车键换行等默认操作        
         placeholder('请输入正文', 'contentPlaceholderClass'),
         CreateCursorInfoPlugin(NativeBridge.getInstance()),

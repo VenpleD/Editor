@@ -183,10 +183,38 @@ const blockquoteNode = {
   }
 };
 
+// bullet_list 节点
+const bulletListNode = {
+  group: "block",
+  content: "list_item+",
+  attrs: { class: { default: "" } },
+  parseDOM: [{ tag: "ul", getAttrs: node => ({ class: node.getAttribute("class") || "" }) }],
+  toDOM(node) { return ["ul", node.attrs.class ? { class: node.attrs.class } : {}, 0] as const; }
+};
+
+// ordered_list 节点
+const orderedListNode = {
+  group: "block",
+  content: "list_item+",
+  attrs: { class: { default: "" } },
+  parseDOM: [{ tag: "ol", getAttrs: node => ({ class: node.getAttribute("class") || "" }) }],
+  toDOM(node) { return ["ol", node.attrs.class ? { class: node.attrs.class } : {}, 0] as const; }
+};
+
+// list_item 节点
+const listItemNode = {
+  content: "paragraph block*",
+  parseDOM: [{ tag: "li" }],
+  toDOM() { return ["li", 0] as const; }
+};
+
 // 合并 nodes
 const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block')
   .update("paragraph", paragraphWithAlign)
   .update("heading", headingNode)
+  .update("list_item", listItemNode) // 关键：覆盖默认的 list_item
+  .update("bullet_list", bulletListNode)
+  .update("ordered_list", orderedListNode)
   .append({
     imageContainer: imageContainerNode,
     blockquote: blockquoteNode,
