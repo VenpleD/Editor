@@ -315,24 +315,6 @@ function setMark(markType: MarkType, attrs: any) {
     }
 }
 
-function setParagraph(view: EditorView, from: number, to: number): void {
-    const { state, dispatch } = view;
-    const { schema } = state;
-    let $from = state.doc.resolve(from);
-    for (let depth = $from.depth; depth > 0; depth--) {
-        if ($from.node(depth).type === schema.nodes.blockquote || $from.node(depth).type === schema.nodes.heading) {
-            let paragraphPos = $from.before(depth);
-            let paragraphNode = $from.node(depth);
-            let paragraphEnd = paragraphPos + paragraphNode.nodeSize;
-            let sel = TextSelection.create(state.doc, paragraphPos + 1, paragraphEnd - 1);
-            let tr = state.tr.setSelection(sel);
-            dispatch(tr); // 先设置 selection
-            lift(view.state, dispatch); // 再提升
-            return;
-        }
-    }
-}
-
 function downgradeToParagraph(view: EditorView) {
     const { state, dispatch } = view;
     const { schema, selection } = state;
