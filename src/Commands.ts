@@ -195,7 +195,7 @@ export const PgcCommand = {
         // 1. 找到当前根节点下的索引
         const rootIndex = $from.index(0);
         let insertPos = $from.before(1);
-        if (doc.childCount > 0) {   
+        if (doc.childCount > 0) {
             insertPos = doc.child(rootIndex).nodeSize + $from.before(1);
         }
 
@@ -270,7 +270,7 @@ function insertImageAtRoot(view: EditorView, imageUrl: string, currentSchema: Sc
     // 获取下一个节点前，先判断是否越界
     const nextIndex = rootIndex + 1;
     let nextNode: ProseMirrorNode | null = null;
-    if (nextIndex < doc.childCount) {
+    if (nextIndex <= doc.childCount) {
         nextNode = doc.child(nextIndex);
     }
 
@@ -289,7 +289,7 @@ function insertImageAtRoot(view: EditorView, imageUrl: string, currentSchema: Sc
     let paraPos;
     if (nextNode && nextNode.type === schema.nodes.paragraph) {
         // 光标定位到下一个段落最后
-        paraPos = insertPos + nextNode.nodeSize - 1;
+        paraPos = insertPos + nextNode.nodeSize;
     } else {
         // 新建一个空段落
         const emptyPara = schema.nodes.paragraph.create();
@@ -300,7 +300,10 @@ function insertImageAtRoot(view: EditorView, imageUrl: string, currentSchema: Sc
     // 设置光标到段落末尾
     tr = tr.setSelection(TextSelection.create(tr.doc, paraPos));
 
-    dispatch(tr.scrollIntoView());
+    dispatch(tr);
+    TransactionCallbackManager.add((updateState, updateView) => {
+        view.dispatch(view.state.tr.scrollIntoView());
+    });
     return true;
 }
 

@@ -40,6 +40,40 @@ export function getFontInfoMap(state: EditorState): Record<string, boolean> {
     infoMap[fontId] = true;
     infoMap[textColor] = true;
     infoMap[bgColor] = true;
+
+    // 1. 获取当前 block 类型
+    const parentNode = $from.parent;
+    const parentType = parentNode.type.name;
+
+    // 2. 判断 h1
+    if (parentType === 'heading') {
+        // 取 class 或 level
+        const h1Class = parentNode.attrs.class || '';
+        let h1Id = GlobalStyle.styleIdMap[h1Class] || 'h1';
+        if (h1Id) infoMap[h1Id] = true;
+        // 也可以 infoMap['h1'] = true;
+    }
+
+    // 4. 判断 list（ul/ol）
+    // 向上遍历，找到最近的 bullet_list 或 ordered_list
+    for (let depth = $from.depth; depth > 0; depth--) {
+        const node = $from.node(depth);
+        if (node.type.name === 'bullet_list' || node.type.name === 'ordered_list') {
+            const listClass = node.attrs.class || '';
+            let listId = GlobalStyle.styleIdMap[listClass] || (node.type.name === 'bullet_list' ? 'bulletList' : 'orderedList');
+            if (listId) infoMap[listId] = true;
+            // 也可以 infoMap[node.type.name] = true;
+            break;
+        }
+        else if (node.type.name === 'blockquote') {
+            // 如果是 blockquote，直接跳出循环
+            const quoteClass = node.attrs.class || '';
+            let quoteId = GlobalStyle.styleIdMap[quoteClass] || 'blockquote';
+            if (quoteId) infoMap[quoteId] = true;
+            break;
+        }
+    }
+
     return infoMap;
 }
 
