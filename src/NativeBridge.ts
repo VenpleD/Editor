@@ -1,5 +1,5 @@
 import { EditorView } from "prosemirror-view";
-import { InsertImageCommand, UndoCommand, FontCommand, RedoCommand, PgcCommand } from "./Commands.ts";
+import { InsertImageCommand, UndoCommand, FontCommand, RedoCommand, PgcCommand, InsertTextAtCursor, InsertHashTagInline } from "./Commands.ts";
 import ContentSchema from "./ContentSchema.ts";
 import UseTypeChecker from "./Object.js";
 import GlobalStyle from "./Global.ts";
@@ -217,6 +217,41 @@ class NativeBridge {
         this.nativeBridge.call('pushWebVC', { content }, null);
     }
 
+    public topicClick(topicId: string, topicName: string) {
+        if (!this.nativeBridge) return;
+        this.nativeBridge.call('topicClick', { topicId, topicName }, null);
+    }
+    
+    private insertText = (params: any, callback: Function) => {
+        const { getType, checkString } = UseTypeChecker()
+        let view = this.contentViewRef?.current;
+        if (!view) {
+            console.error('insertText: contentViewRef is not set');
+            return;
+        }
+        const { text } = params;
+        if (getType(text) !== 'string' || checkString(text).isEmpty) {
+            console.error('insertText: invalid text parameter');
+            return;
+        }
+        InsertTextAtCursor(view, text);
+    }
+
+    private insertTopic = (params: any, callback: Function) => {
+        const { getType, checkString } = UseTypeChecker()
+        let view = this.contentViewRef?.current;
+        if (!view) {
+            console.error('insertTopic: contentViewRef is not set');
+            return;
+        }
+        const { topicId, topicName } = params;
+        if (getType(topicName) !== 'string' || checkString(topicName).isEmpty) {
+            console.error('insertTopic: invalid topicName parameter');
+            return;
+        }
+        InsertHashTagInline(view, topicName, topicId);
+    }
+
     private commonFunc() {
         this.nativeBridge.registerSync('insertLocalImage', this.insertImage);
         this.nativeBridge.registerAsync('becomeFirstResponse', this.becomeFirstResponse);
@@ -227,6 +262,8 @@ class NativeBridge {
         this.nativeBridge.registerAsync('undoClick', this.undoClick);
         this.nativeBridge.registerAsync('redoClick', this.redoClick);
         this.nativeBridge.registerAsync('nextStep', this.nextStep);
+        this.nativeBridge.registerAsync('insertText', this.insertText);
+        this.nativeBridge.registerAsync('insertTopic', this.insertTopic);
     }
 
 }

@@ -22,6 +22,7 @@ type FontFunction = {
     align: (view: EditorView, align: string) => (Boolean);
 }
 
+// 字体相关命令
 export const FontCommand: FontFunction = {
     bold: (view: EditorView) => {
         const markType = ContentSchema.marks.strong;
@@ -87,6 +88,8 @@ export const FontCommand: FontFunction = {
     }
 };
 
+// 设置段落对齐方式
+// 包含了h1、blockquote、order_list
 export const PgcCommand = {
     settingH1: (view: EditorView, className: string) => {
         let { state, dispatch } = view;
@@ -234,6 +237,7 @@ export const PgcCommand = {
     }
 };
 
+// h1标签内部删除键删除到最后的时候，触发将其转换为段落
 export const headingToParagraphOnBackspace = (state: EditorState, dispatch?: (tr: Transaction) => void): boolean => {
     const { $from } = state.selection;
     const heading = ContentSchema.nodes.heading;
@@ -257,7 +261,13 @@ export const FocusImageNextNode = (view: EditorView, node: ProseMirrorNode) => {
     );
 }
 
-
+// 插入图片到根节点下
+// 该函数会在当前根节点下插入一个图片节点，并在图片后面插入一个空段落
+// 如果当前根节点下有内容，则在最后插入图片节点
+// 如果当前根节点下没有内容，则直接插入图片节点和空段落
+// 注意：该函数假设当前选区在根节点下，且根节点下只有一个段落或空内容
+// 如果当前选区在嵌套的 block 中，则需要特殊处理
+// 该函数会返回 true 表示插入成功
 function insertImageAtRoot(view: EditorView, imageUrl: string, currentSchema: Schema) {
     const { state, dispatch } = view;
     const { selection, doc, schema } = state;
@@ -434,6 +444,12 @@ function setMark(markType: MarkType, attrs: any) {
     }
 }
 
+// 降级为段落命令
+// 该命令会将当前选区或光标所在位置的节点降级
+// 为段落节点（paragraph），并提升列表或 blockquote 等节点
+// 如果当前选区是一个 heading 节点，则直接转换为段落
+// 如果选区是一个列表或 blockquote || bullet_list || ordered_list，则提升该节点
+// 并将其转换为段落
 function downgradeToParagraph(view: EditorView) {
     const { state, dispatch } = view;
     const { schema, selection } = state;
@@ -476,6 +492,12 @@ function downgradeToParagraph(view: EditorView) {
     // 如果已经是 p，不处理
 }
 
+// 移除所有 mark 的辅助函数
+// 该函数会遍历 schema 中的所有 mark 类型，并在指定范围内移除它们
+// 注意：此函数假设 schema.marks 是一个对象，包含所有 mark 类型
+// 如果 schema.marks 是一个 Map 或其他结构，请根据实际情况调整
+// 该函数会返回一个新的 Transaction 对象
+// 以便在 ProseMirror 中使用
 function removeAllMarks(tr: Transaction, schema: Schema, from: number, to: number): Transaction {
     if (schema.marks) {
         Object.values(schema.marks).forEach((mark) => {
@@ -485,6 +507,8 @@ function removeAllMarks(tr: Transaction, schema: Schema, from: number, to: numbe
     return tr;
 }
 
+// 插入水平分割线命令
+// 该命令会在当前根节点下插入一个水平分割线节点
 export const InsertHorizontalRuleCommand = (view: EditorView, currentSchema: Schema) => {
     const { state, dispatch } = view;
     const { selection, doc, schema } = state;
@@ -525,3 +549,53 @@ export const InsertHorizontalRuleCommand = (view: EditorView, currentSchema: Sch
     dispatch(tr.scrollIntoView());
     return true;
 };
+
+export const InsertTextAtCursor = (view: EditorView, text: string) => {
+    const { state, dispatch } = view;
+    const { selection } = state;
+    const { from, to, empty } = selection;
+
+    // 如果是空选区，直接插入文本
+    if (empty) {
+        const tr = state.tr.insertText(text, from);
+        dispatch(tr);
+        return true;
+    }
+
+    // 如果有选区，替换选区内容
+    const tr = state.tr.replaceWith(from, to, state.schema.text(text));
+    dispatch(tr);
+    return true;
+}
+
+export const InsertHashTagInline = (view: EditorView, text: string, topicId: string) => {
+    const { state, dispatch } = view;
+    const { selection, doc } = state;
+    const { from, to, empty } = selection;
+
+    if (!empty) {
+        // 如果有选区，替换选区内容
+        const hashtagMark = state.schema.marks.hashtagInline.create({ text, topicId });
+        const textNode = state.schema.text(text);
+        let tr = state.tr.replaceWith(from, to, textNode);
+        tr = tr.addMark(from, from + text.length, hashtagMark);
+        dispatch(tr);
+        return true;
+    }
+
+    // 如果是空选区，直接插入标签
+    let pos = selection.from;
+    let tr = state.tr;
+    if (pos > 0 && doc.textBetween(pos - 1, pos) === '#') {
+        // 插入 mark
+        const hashtagNode = state.schema.nodes.hashtagInlineNode.create({ text, topicId }, state.schema.text(`${text}`));
+        tr = state.tr.replaceWith(pos - 1, pos, hashtagNode);
+        dispatch(tr.scrollIntoView());
+        return true;
+    }
+
+
+    view.focus();
+
+    return true;
+}

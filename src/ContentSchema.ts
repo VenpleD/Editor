@@ -62,13 +62,40 @@ const fontSizeMark = {
   }
 };
 
+const hashtagInlineNode = {
+  inline: true,
+  group: "inline",
+  atom: false, // 关键，保证不可拆分
+  selectable: true,
+  content: "text*", // 允许包含文本
+  attrs: { text: {}, topicId: {} },
+  parseDOM: [{
+    tag: 'span.hashtag-inline',
+    getAttrs: dom => ({
+      text: dom.textContent,
+      topicId: dom.getAttribute('topicId') || ''
+    })
+  }],
+  toDOM(node) {
+    return [
+      'span',
+      {
+        class: 'hashtag-inline',
+        topicId: node.attrs.topicId,
+        onclick: 'window.ddBridge.call("onHashtagClick", { text: "${node.attrs.text}", topicId: "${node.attrs.topicId}" })',
+      },
+      node.textContent
+    ] as const;
+  }
+};
+
 // 合并 marks
 const allMarks = basicSchema.spec.marks
   .update("underline", underlineMark)
   .update("strike", strikeMark)
   .update("textColor", textColorMark)
   .update("bgColor", bgColorMark)
-  .update("fontSize", fontSizeMark);
+  .update("fontSize", fontSizeMark)
 
 // 2. 定义所有 nodes
 // 扩展 paragraph，支持 align 属性
@@ -123,7 +150,7 @@ const imageContainerNode = {
   toDOM(node) {
     return [
       'div',
-      { class: GlobalConstants.imageContainerCls },
+      { class: node.attrs.cls || GlobalConstants.imageContainerCls },
       ['img', { 
         src: node.attrs.src,
         upload_id: node.attrs.upload_id,
@@ -235,6 +262,7 @@ const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block
     imageContainer: imageContainerNode,
     blockquote: blockquoteNode,
     horizontal_rule: horizontalRuleNode,
+    hashtagInlineNode: hashtagInlineNode // 关键：添加 hashtagInlineNode
   });
 
 // 关键：doc 节点的 content 要包含 imageContainer
