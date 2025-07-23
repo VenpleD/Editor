@@ -326,3 +326,10 @@ html {
   font-weight: bold;
   font-size: 1em;
 }
+
+.contentWrapper .pgc-h1 {
+  margin: 24px auto;
+  width: 60%;
+  border: none;
+  border-top: 2px solid #ccc;
+}

@@ -11,6 +11,7 @@ export const GlobalConstants = {
   quoteImageCls: 'quote-image',
   bulletListCls: 'pgc-bullet-list',
   orderedListCls: 'pgc-ordered-list',
+  hrCls: 'pgc-h1',
 };
 
 const styleMap = {
@@ -60,6 +61,7 @@ const styleMap = {
   listStyle: {
     bullet: GlobalConstants.bulletListCls,
     ordered: GlobalConstants.orderedListCls,
+    hr: GlobalConstants.hrCls
   },
 };
 

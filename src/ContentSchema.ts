@@ -208,6 +208,22 @@ const listItemNode = {
   toDOM() { return ["li", 0] as const; }
 };
 
+// horizontal_rule 节点
+const horizontalRuleNode = {
+  group: "block",
+  selectable: false,
+  attrs: { class: { default: "" } },
+  parseDOM: [{
+    tag: "hr",
+    getAttrs: node => ({
+      class: (node as HTMLElement).getAttribute('class') || ''
+    })
+  }],
+  toDOM(node) {
+    return ["hr", node.attrs.class ? { class: node.attrs.class } : {}] as const;
+  }
+};
+
 // 合并 nodes
 const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block')
   .update("paragraph", paragraphWithAlign)
@@ -218,6 +234,7 @@ const allNodes = addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block
   .append({
     imageContainer: imageContainerNode,
     blockquote: blockquoteNode,
+    horizontal_rule: horizontalRuleNode,
   });
 
 // 关键：doc 节点的 content 要包含 imageContainer

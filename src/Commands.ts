@@ -186,6 +186,66 @@ export const PgcCommand = {
         // 包裹为有序列表，带 class
         return wrapInList(orderedList, { class: GlobalConstants.orderedListCls })(view.state, dispatch);
     },
+
+    setPgcHr: (view: EditorView) => {
+        const { state, dispatch } = view;
+        const { selection, doc, schema } = state;
+        const { $from } = selection;
+
+        // 1. 找到当前根节点下的索引
+        const rootIndex = $from.index(0);
+        let insertPos = $from.before(1);
+        if (doc.childCount > 0) {   
+            insertPos = doc.child(rootIndex).nodeSize + $from.before(1);
+        }
+
+        // 构造分割线节点
+        const hrNode = schema.nodes.horizontal_rule.create({
+            class: GlobalConstants.hrCls
+        });
+
+        // 插入分割线
+        let tr = state.tr.insert(insertPos, hrNode);
+
+        // 可选：插入分割线后，光标定位到分割线后一个段落（如果有），否则新建一个空段落
+        const nextIndex = rootIndex + 1;
+        let nextNode: ProseMirrorNode | null = null;
+        if (nextIndex < tr.doc.childCount) {
+            nextNode = tr.doc.child(nextIndex);
+        }
+        let paraPos;
+        if (nextNode && nextNode.type === schema.nodes.paragraph) {
+            // 光标定位到下一个段落开头
+            paraPos = tr.doc.child(nextIndex).content.size
+                ? tr.doc.child(nextIndex).firstChild!.nodeSize + $from.before(nextIndex + 1)
+                : $from.before(nextIndex + 1) + 1;
+        } else {
+            // 新建一个空段落
+            const emptyPara = schema.nodes.paragraph.create();
+            tr = tr.insert(insertPos + hrNode.nodeSize, emptyPara);
+            paraPos = insertPos + hrNode.nodeSize + 1;
+        }
+
+        // 设置光标到段落开头
+        tr = tr.setSelection(TextSelection.create(tr.doc, paraPos));
+
+        dispatch(tr.scrollIntoView());
+        return true;
+    }
+};
+
+export const headingToParagraphOnBackspace = (state: EditorState, dispatch?: (tr: Transaction) => void): boolean => {
+    const { $from } = state.selection;
+    const heading = ContentSchema.nodes.heading;
+    const paragraph = ContentSchema.nodes.paragraph;
+    if (
+        $from.parent.type === heading &&
+        $from.parent.content.size === 0 &&
+        $from.parentOffset === 0
+    ) {
+        return setBlockType(paragraph)(state, dispatch);
+    }
+    return false;
 };
 
 export const FocusImageNextNode = (view: EditorView, node: ProseMirrorNode) => {
@@ -197,10 +257,66 @@ export const FocusImageNextNode = (view: EditorView, node: ProseMirrorNode) => {
     );
 }
 
-export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSchema: Schema) => {
+
+function insertImageAtRoot(view: EditorView, imageUrl: string, currentSchema: Schema) {
     const { state, dispatch } = view;
+    const { selection, doc, schema } = state;
+    const { $from } = selection;
+
+    // 1. 找到当前根节点下的索引
+    const rootIndex = $from.index(0);
+    let insertPos = doc.child(rootIndex).nodeSize + $from.before(1);
+
+    // 获取下一个节点前，先判断是否越界
+    const nextIndex = rootIndex + 1;
+    let nextNode: ProseMirrorNode | null = null;
+    if (nextIndex < doc.childCount) {
+        nextNode = doc.child(nextIndex);
+    }
+
+    // 构造图片节点
+    const imageNode = schema.nodes.imageContainer.create({
+        src: imageUrl,
+        value: '',
+        placeholder: GlobalConstants.imageContainerTextareaPlaceholder,
+        cls: GlobalConstants.imageContainerTextareaCls,
+        imgCls: GlobalConstants.imageContainerImgCls,
+        upload_id: Date.now().toString()
+    });
+
+    let tr = state.tr.insert(insertPos, imageNode);
+
+    let paraPos;
+    if (nextNode && nextNode.type === schema.nodes.paragraph) {
+        // 光标定位到下一个段落最后
+        paraPos = insertPos + nextNode.nodeSize - 1;
+    } else {
+        // 新建一个空段落
+        const emptyPara = schema.nodes.paragraph.create();
+        tr = tr.insert(insertPos + imageNode.nodeSize, emptyPara);
+        paraPos = insertPos + imageNode.nodeSize + 1;
+    }
+
+    // 设置光标到段落末尾
+    tr = tr.setSelection(TextSelection.create(tr.doc, paraPos));
+
+    dispatch(tr.scrollIntoView());
+    return true;
+}
+
+// 主插入图片命令
+export const InsertImageCommand = (view: EditorView, imageUrl: string, currentSchema: Schema) => {
+    const { state } = view;
+    const { $from } = state.selection;
+
+    if ($from.depth > 1) {
+        // 嵌套 block，特殊处理
+        return insertImageAtRoot(view, imageUrl, currentSchema);
+    }
+    // 根节点下直接插入，走原有逻辑
+    const { dispatch } = view;
     const { tr, selection } = state;
-    const { $from, $to, empty } = selection;
+    const { $to, empty } = selection;
 
     // 判断当前段落是否为空段落
     const isEmptyParagraph = $from.parent.isTextblock && $from.parent.content.size === 0;
@@ -365,3 +481,44 @@ function removeAllMarks(tr: Transaction, schema: Schema, from: number, to: numbe
     }
     return tr;
 }
+
+export const InsertHorizontalRuleCommand = (view: EditorView, currentSchema: Schema) => {
+    const { state, dispatch } = view;
+    const { selection, doc, schema } = state;
+    const { $from } = selection;
+
+    // 1. 找到当前根节点下的索引
+    const rootIndex = $from.index(0);
+    let insertPos = doc.child(rootIndex).nodeSize + $from.before(1);
+
+    // 构造分割线节点
+    const hrNode = schema.nodes.horizontal_rule.create();
+
+    // 插入分割线
+    let tr = state.tr.insert(insertPos, hrNode);
+
+    // 可选：插入分割线后，光标定位到分割线后一个段落（如果有），否则新建一个空段落
+    const nextIndex = rootIndex + 1;
+    let nextNode: ProseMirrorNode | null = null;
+    if (nextIndex < tr.doc.childCount) {
+        nextNode = tr.doc.child(nextIndex);
+    }
+    let paraPos;
+    if (nextNode && nextNode.type === schema.nodes.paragraph) {
+        // 光标定位到下一个段落开头
+        paraPos = tr.doc.child(nextIndex).content.size
+            ? tr.doc.child(nextIndex).firstChild!.nodeSize + $from.before(nextIndex + 1)
+            : $from.before(nextIndex + 1) + 1;
+    } else {
+        // 新建一个空段落
+        const emptyPara = schema.nodes.paragraph.create();
+        tr = tr.insert(insertPos + hrNode.nodeSize, emptyPara);
+        paraPos = insertPos + hrNode.nodeSize + 1;
+    }
+
+    // 设置光标到段落开头
+    tr = tr.setSelection(TextSelection.create(tr.doc, paraPos));
+
+    dispatch(tr.scrollIntoView());
+    return true;
+};
