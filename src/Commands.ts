@@ -575,11 +575,12 @@ export const InsertHashTagInline = (view: EditorView, text: string, topicId: str
 
     if (!empty) {
         // 如果有选区，替换选区内容
-        const hashtagMark = state.schema.marks.hashtagInline.create({ text, topicId });
-        const textNode = state.schema.text(text);
-        let tr = state.tr.replaceWith(from, to, textNode);
-        tr = tr.addMark(from, from + text.length, hashtagMark);
-        dispatch(tr);
+        const hashtagNode = state.schema.nodes.hashtagInlineNode.create({ text, topicId }, state.schema.text(`${text}`));
+        let tr = state.tr.replaceWith(from, to, hashtagNode);
+        // 让光标定位到标签后面
+        const after = from + hashtagNode.nodeSize;
+        tr = tr.setSelection(TextSelection.create(tr.doc, after));
+        dispatch(tr.scrollIntoView());
         return true;
     }
 
