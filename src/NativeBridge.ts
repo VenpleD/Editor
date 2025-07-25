@@ -50,11 +50,13 @@ class NativeBridge {
         this.contentViewRef = ref;
     }
 
+    // 同步字体信息到native
     public asyncFontInfo (params: object) {
         if (!this.nativeBridge) { return;}
         this.nativeBridge.call('asyncFontInfo', params, null);
     }
 
+    // native插入图片到H5
     private insertImage = (params: InsertImageParams) => {
         if (this.contentViewRef?.current) {
             InsertImageCommand(this.contentViewRef.current, params.imageLocalPath, ContentSchema);

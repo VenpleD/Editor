@@ -29,6 +29,7 @@ class AppManager {
             // 1. 收集所有本地图片
             const imageList = this.getAllImageContainerIdsAndSrcs(contentView.state.doc);
             if (imageList.length === 0) {
+                const htmlContent = this.getHtmlContent(contentView);
                 this.setLoading?.(false);
                 return;
             }
@@ -52,26 +53,31 @@ class AppManager {
             this.replaceImageSrcsById(contentView, idToUrl);
             // Perform actions with titleView and contentView
 
-            let htmlContent = this.getContentHtml(contentView);
-            // 4. 获取半个文档内容
-            const halfDoc = this.getHalfDocByNode(contentView.state.doc);
-            const halfHtmlContent = this.getContentHtml(new EditorView(null, {
-                state: EditorState.create({
-                    doc: halfDoc,
-                    schema: contentView.state.schema,
-                    plugins: contentView.state.plugins
-                })
-            }));
-            // 5. 获取标题内容
-            const titleHtml = this.getContentHtml(titleView);
-            NativeBridge.getInstance().pushDetailPage(htmlContent);
-            setTimeout(() => {
-                NativeBridge.getInstance().pushDetailPage(halfHtmlContent);
-            }, 500);
+            const htmlContent = this.getHtmlContent(contentView);
 
         } finally {
             if (this.setLoading) this.setLoading(false);
         }
+    }
+
+    private getHtmlContent(contentView: EditorView): string {
+        let htmlContent = this.getContentHtml(contentView);
+        // 4. 获取半个文档内容
+        const halfDoc = this.getHalfDocByNode(contentView.state.doc);
+        const halfHtmlContent = this.getContentHtml(new EditorView(null, {
+            state: EditorState.create({
+                doc: halfDoc,
+                schema: contentView.state.schema,
+                plugins: contentView.state.plugins
+            })
+        }));
+        // 5. 获取标题内容
+        // const titleHtml = this.getContentHtml(titleView);
+        NativeBridge.getInstance().pushDetailPage(htmlContent);
+        setTimeout(() => {
+            NativeBridge.getInstance().pushDetailPage(halfHtmlContent);
+        }, 500);
+        return "";
     }
 
     private replaceImageSrcsById(view: EditorView, idToUrl: { [upload_id: string]: string }) {
@@ -106,7 +112,10 @@ class AppManager {
     }
     // 获取半个文档的内容
     public getHalfDocByNode(node: ProseMirrorNode): ProseMirrorNode {
-        const totalSize = node.content.size;
+        const totalSize = node.textContent.length;
+        if (totalSize <= 0) {
+            return node.type.create(node.attrs, node.content, node.marks);
+        }
         let currentSize = 0;
         const children: ProseMirrorNode[] = [];
 
