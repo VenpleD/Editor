@@ -294,6 +294,20 @@ export class ImageContainerView implements NodeView {
     img.setAttribute('referrerpolicy', 'no-referrer'); // 避免跨域问题
     this.dom.appendChild(img);
 
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'image-delete-btn';
+    deleteBtn.innerText = 'x';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      // 触发删除图片的逻辑
+      const pos = getPos();
+      if (pos !== undefined) {
+        const tr = view.state.tr.delete(pos, pos + node.nodeSize);
+        view.dispatch(tr);
+      }
+    }
+    this.dom.appendChild(deleteBtn);
+
     // 创建 textarea
     const textarea = document.createElement('textarea');
     textarea.value = node.attrs.value || '';

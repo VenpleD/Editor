@@ -341,3 +341,24 @@ html {
   cursor: pointer;
   user-select: none;
 }
+
+.contentWrapper .imageContainer {
+  position: relative;;
+}
+
+.contentWrapper .imageContainer .image-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background-color: #ff5d5d;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
